@@ -1,2 +1,2 @@
-# PrivateRL
-# Main directory for Private Reinforcemetn Learning algorithms
+# Private-Policy-Learning
+Private First-Visit Monte-Carlo Plicy Evaluation Implementation: LSL and LSW algorithms
