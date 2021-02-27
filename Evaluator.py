@@ -4,10 +4,8 @@ import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 from numpy import math, Inf, reshape, ravel
-from scipy import  linalg
+from scipy import linalg
 import os
-from expParams import expParameters
-from mdpParams import mdpParameteres
 from scipy.spatial.distance import cdist, euclidean
 from simpleMC import MChain
 
@@ -28,7 +26,7 @@ class MCPE():
         self.featureMatrix=featureMatrix
         self.huge_batch_name=huge_batch_name
         self.batch_gen_trigger=batch_gen_trigger
-        self.maxBatchLength=49999
+        self.maxBatchLength = sum(1 for line in open(huge_batch_name))
         #To Do: 200 is set manually here, which is wrong, this needs to be fixed
         if batch_gen_trigger=="Y":
             self.InitHugeBatch= self.batchGen(mdp, 200, self.maxBatchLength, self.gamma_factor, self.pi, mdp.startStateDistribution())
@@ -145,7 +143,7 @@ class MCPE():
         for i in range(len(stateApearanceCount)):
             Gamma_w[i][i]=Gamma_w[i][i]*stateApearanceCount[i]/len(Batch)
     
-        invMatrix=(phiT*numpy.mat(Gamma_w))*featuresMatrix
+        invMatrix = (phiT*numpy.mat(Gamma_w))*featuresMatrix
         
         if self.is_invertible(invMatrix):
             invMatrix=linalg.inv(invMatrix)
@@ -157,10 +155,10 @@ class MCPE():
                 Gamma_w[i][i]=Gamma_w[i][i]**0.5
             invMatrix=numpy.mat(Gamma_w)*numpy.mat(featuresMatrix)
             invMatrix=linalg.pinv(invMatrix)
-            ParamVec=numpy.mat((numpy.mat(invMatrix)*numpy.mat(Gamma_w)))*numpy.mat(numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1)))
-            
-        
-        return [ParamVec, stateApearanceCount,FirstVisitVector]
+            ParamVec = numpy.mat((numpy.mat(invMatrix)*numpy.mat(Gamma_w)))*numpy.\
+                mat(numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1)))
+
+        return [ParamVec, stateApearanceCount, FirstVisitVector]
     
     def is_invertible(self,A):
         return A.shape[0] == A.shape[1] and numpy.linalg.matrix_rank(A) == A.shape[0]
@@ -201,35 +199,35 @@ class MCPE():
         return upperBound  
         
     def DPLSW(self, thetaTild, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta,batchSize, initStateDist="uniform", pi="uniform"):
-        dim=len(featuresMatrix.T)
-        alpha=(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
-        beta= (epsilon/4)/(dim+numpy.math.log(2.0/delta))
+        dim = len(featuresMatrix.T)
+        alpha = (5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
+        beta = (epsilon/4)/(dim+numpy.math.log(2.0/delta))
         
-        Gamma_w=myMDP.getGammaMatrix()
+        Gamma_w = myMDP.getGammaMatrix()
         for i in range(len(countXVec)):
-            Gamma_w[i][i]=Gamma_w[i][i]*countXVec[i]/batchSize
+            Gamma_w[i][i] = Gamma_w[i][i]*countXVec[i]/batchSize
         
-        GammaSqrt= (Gamma_w)
+        GammaSqrt = Gamma_w
         for i in range(len(GammaSqrt)):
-            GammaSqrt[i][i]=math.sqrt(Gamma_w[i][i])
+            GammaSqrt[i][i] = math.sqrt(Gamma_w[i][i])
             
-        GammaSqrtPhi= numpy.mat(GammaSqrt) *numpy.mat(featuresMatrix)
+        GammaSqrtPhi = numpy.mat(GammaSqrt) *numpy.mat(featuresMatrix)
         if self.is_invertible(GammaSqrtPhi):
-            GammaSqrtPhiInv=linalg.inv(GammaSqrtPhi)
+            GammaSqrtPhiInv = linalg.inv(GammaSqrtPhi)
         else:
-            GammaSqrtPhiInv=linalg.pinv(GammaSqrtPhi)
+            GammaSqrtPhiInv = linalg.pinv(GammaSqrtPhi)
             
-        PsiBetaX= self.SmootBound_LSW(myMDP, Gamma_w, countXVec, beta, myMDP.startStateDistribution())
-        sigmmaX= (alpha*myMDP.getMaxReward())/(1-self.gamma_factor)
-        sigmmaX=sigmmaX*numpy.linalg.norm(GammaSqrtPhiInv)
-        sigmmaX=sigmmaX*math.pow(PsiBetaX, .5)
-        cov_X=math.pow(sigmmaX,2)*numpy.identity(dim)
-        mean=numpy.zeros(dim)
-        ethaX=numpy.random.multivariate_normal(mean,cov_X)        
-        thetaTild=numpy.squeeze(numpy.asarray(thetaTild))
-        ethaX=numpy.squeeze(numpy.asarray(ethaX))
-        thetaTild_priv=thetaTild+ethaX
-        return [thetaTild_priv,thetaTild,math.pow(sigmmaX,2)]
+        PsiBetaX = self.SmootBound_LSW(myMDP, Gamma_w, countXVec, beta, myMDP.startStateDistribution())
+        sigmmaX = (alpha*myMDP.getMaxReward())/(1-self.gamma_factor)
+        sigmmaX = sigmmaX*numpy.linalg.norm(GammaSqrtPhiInv)
+        sigmmaX = sigmmaX*math.pow(PsiBetaX, .5)
+        cov_X = math.pow(sigmmaX,2)*numpy.identity(dim)
+        mean = numpy.zeros(dim)
+        ethaX = numpy.random.multivariate_normal(mean, cov_X)
+        thetaTild = numpy.squeeze(numpy.asarray(thetaTild))
+        ethaX = numpy.squeeze(numpy.asarray(ethaX))
+        thetaTild_priv = thetaTild + ethaX
+        return [thetaTild_priv, thetaTild, math.pow(sigmmaX,2)]
     
     def weighted_dif_L2_norm(self, mdp, v ,vhat):
 
@@ -330,21 +328,34 @@ class MCPE():
     
     def batchCutoff(self, filename, numTrajectories):
         miniBatch = [[ ] for y in range(numTrajectories)]
-        randIndecies=numpy.random.choice(self.maxBatchLength, (1,numTrajectories), replace=False)
+        #randIndecies=numpy.random.choice(self.maxBatchLength, (1,numTrajectories), replace=False)
+        randIndecies = np.random.choice(self.maxBatchLength, numTrajectories, replace=False)
         batch_file = open(filename, "r")
-        newbatch=self.picklines(batch_file, randIndecies[0])
+        newbatch=self.picklines(filename, randIndecies)
         for i in range(numTrajectories):
             #newLine=batch_file.readline(randIndecies[i])
             newLine=newbatch[i]
-            if newLine=="\n":
-                lIndex=numpy.random.choice(self.maxBatchLength, replace=False)
-                newLine=self.picklines(batch_file, lIndex) 
+            while True:
+                if newLine=="\n":
+                    lIndex=numpy.random.choice(self.maxBatchLength, replace=False)
+                    newLine= open(filename).readlines()[lIndex]
+                    if newLine == "\n":
+                        continue
+                    else:
+                        break
+                else:
+                    break
             miniBatch[i]=newLine.split(',')
         #Here I have to convert it to trajectories of ints and then return it
         return miniBatch 
     
-    def picklines(self,thefile, whatlines):
-        return [x for i, x in enumerate(thefile) if i in whatlines]
+    def picklines(self, thefile, lineNumberList):
+        miniBatch = []
+        # open a file
+        #file = open(thefile)
+        for i in lineNumberList:
+            miniBatch.append(open(thefile).readlines()[i])
+        return miniBatch
     
     def subSampleGen(self,batch, numberOfsubSamples, subSampelSize):
 
@@ -449,49 +460,52 @@ class MCPE():
         #print(tempList)
         return 2*temp_1
     
-    def LSW_subSampleAggregate(self, batch, numberOfsubSamples,myMDP,featuresMatrix,epsilon,delta,subSampleSize):
-        dim=len(featuresMatrix.T)
+    def lsw_sub_sample_aggregate(self, batch, numberOfsubSamples, myMDP, featuresMatrix, epsilon, delta, epsilon_star,
+                                 delta_star, subSampleSize):
+        dim = len(featuresMatrix.T)
         #alpha=(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
         #beta= (epsilon/4)*(dim+numpy.math.log(2.0/delta))
         
-        subSamples=self.subSampleGen(batch, numberOfsubSamples, subSampleSize)
-        z=numpy.zeros((len(subSamples),len(featuresMatrix)))
-        g=numpy.zeros((len(subSamples),len(featuresMatrix)))
-        for i in range(len(subSamples)):
-            FVMC=self.FVMCPE(myMDP, featuresMatrix, subSamples[i])
-            DPLSWTemp= self.DPLSW(FVMC[0], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta, subSampleSize, "uniform", "uniform")
-            g[i]= ravel(numpy.mat(featuresMatrix)*numpy.mat(FVMC[0]))
-            z[i]= ravel(numpy.mat(featuresMatrix)*numpy.mat(DPLSWTemp[0]).T)#this is LSW
-        tempAddz=numpy.zeros(dim)
-        tempAddg=numpy.zeros(dim)
+        sub_samples = self.subSampleGen(batch, numberOfsubSamples, subSampleSize)
+        lsw = numpy.zeros((len(sub_samples), len(featuresMatrix)))
+        first_visit = numpy.zeros((len(sub_samples), len(featuresMatrix)))
+        for i in range(len(sub_samples)):
+            FVMC = self.FVMCPE(myMDP, featuresMatrix, sub_samples[i])
+            DPLSWTemp = self.DPLSW(FVMC[0], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta,
+                                   subSampleSize, "uniform", "uniform")
+            first_visit[i] = ravel(FVMC[0])
+            lsw[i] = ravel(numpy.mat(featuresMatrix)*numpy.mat(DPLSWTemp[0]).T) #this is LSW
+        sum_lsw = numpy.zeros(dim)
+        sum_first_visit = numpy.zeros(dim)
         
-        for j in range(len(z)):
-            tempAddz+=z[j]
-            tempAddg+=g[j]
-            
-        
-        #partitionPoint=int((numberOfsubSamples+math.sqrt(numberOfsubSamples))/2)+1   
-        #g= self.generalized_median(myMDP,z,partitionPoint,distUB)
-        #g=self.geometric_median(z)
-        #g= self.aggregate_median(myMDP,z)
+        for j in range(len(lsw)):
+            sum_lsw += lsw[j]
+            sum_first_visit += first_visit[j]
+
+        aggregated_private_first_visit = ravel(numpy.mat(featuresMatrix) * numpy.mat(self.DPLSW(sum_first_visit/len(sub_samples), FVMC[1], myMDP, featuresMatrix,
+                                                    myMDP.getGamma(), epsilon_star, delta_star, subSampleSize,
+                                                    "uniform", "uniform")[0]).T)
+        #partitionPoint=int((number_of_sub_samples+math.sqrt(number_of_sub_samples))/2)+1
+        #first_visit= self.generalized_median(myMDP,lsw,partitionPoint,distUB)
+        #first_visit=self.geometric_median(lsw)
+        #first_visit= self.aggregate_median(myMDP,lsw)
         
         #To check the following block
-        #S_z=self.computeAggregateSmoothBound(z, beta, s,myMDP,distUB)
+        #S_z=self.computeAggregateSmoothBound(lsw, beta, s,myMDP,distUB)
         #cov_X=(S_z/alpha)*numpy.identity(len(featuresMatrix))
         
         #ethaX=numpy.random.multivariate_normal(numpy.zeros(len(featuresMatrix)),cov_X)
         #print(S_z)
         #noise=(S_z/alpha)*ethaX
-        #return [g[1]+ethaX,g[1]]
-        return [tempAddz/len(subSamples),tempAddg/len(subSamples)]
+        #return [first_visit[1]+ethaX,first_visit[1]]
+        return [sum_lsw/len(sub_samples), aggregated_private_first_visit]
     
-    def LSL_subSampleAggregate(self, batch, s, numberOfsubSamples,myMDP,featuresMatrix,regCoef, pow_exp,numTrajectories,epsilon,delta,distUB):
+    def lsl_sub_sample_aggregate(self, batch, s, numberOfsubSamples, myMDP, featuresMatrix, regCoef, pow_exp, numTrajectories, epsilon, delta, distUB, subSampleSize):
         dim=len(featuresMatrix.T)
         alpha=(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
         #beta= (epsilon/4)*(dim+numpy.math.log(2.0/delta))
         beta= (s/(2*numberOfsubSamples))
-        
-        subSamples=self.subSampleGen(batch, numberOfsubSamples)
+        subSamples=self.subSampleGen(batch, numberOfsubSamples,subSampleSize)
         z=numpy.zeros((len(subSamples),dim))
         for i in range(len(subSamples)):
             FVMC=self.FVMCPE(myMDP, featuresMatrix, subSamples[i])
@@ -513,15 +527,15 @@ class MCPE():
         #print(S_z)
         #noise=(S_z/alpha)*ethaX
         #numpy.mat(featuresMatrix)*numpy.mat(g[1]+ethaX)
-        temp_priv=numpy.mat(featuresMatrix)*numpy.mat(g[1]+ethaX).T
+        temp_priv = numpy.mat(featuresMatrix)*numpy.mat(g[1]+ethaX).T
         return [temp_priv, numpy.mat(featuresMatrix)*numpy.mat(g[1]).T]
-    
     
     def getminLambda(self, myMDP,featurmatrix):
         normPhi=numpy.linalg.norm(featurmatrix)
         l = normPhi**2
         l*=numpy.max(myMDP.startStateDistribution())
         return l
+
     def computeLambdas(self, myMDP, featurmatrix, coefs, batchSize , power_list):
         lambdaS=[]
         lambdaOffset= self.getminLambda(myMDP, featurmatrix)
@@ -590,8 +604,3 @@ class MCPE():
         A_hat_inv=linalg.pinv(A_hat)
         theta_hat_X= numpy.mat(A_hat_inv)*numpy.mat(b_hat.T)
         return theta_hat_X
-    
-     
-        
-        
-        
