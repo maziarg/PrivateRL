@@ -778,17 +778,6 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
         V_vs_SA_bldl[j] = -math.log10((mean_v_vs_sa[j] - std_V_vs_SA[j])) + math.log10((mean_v_vs_sa[j]))
         V_vs_SA_blm[j] = math.log10((mean_v_vs_sa[j]))
 
-    with open('finalResult.csv', 'w') as csvfile:
-        writer = csv.writer(csvfile)
-        fieldnames = ['Lower Bound', 'Mean', 'Upper Bound']
-        writer.writerow(fieldnames)
-        # for per in range(2):
-        writer.writerow([V_vs_DPLSW_bldl[0], V_vs_DPLSW_blm[0], V_vs_DPLSW_bldu[0]])
-        writer.writerow([v_vs_dpsa_bldl[0], v_vs_dpsa_blm[0], v_vs_dpsa_bldu[0]])
-        writer.writerow([V_vs_LSW_bldl[0], V_vs_LSW_blm[0], V_vs_LSW_bldu[0]])
-        writer.writerow([V_vs_SA_bldl[0], V_vs_SA_blm[0], V_vs_SA_bldu[0]])
-
-
     ax.errorbar(args.experiment_batch_lenghts, V_vs_LSW_blm,  yerr=[V_vs_LSW_bldu, V_vs_LSW_bldl])
     ax.errorbar(args.experiment_batch_lenghts, V_vs_DPLSW_blm, yerr=[V_vs_DPLSW_bldu, V_vs_DPLSW_bldl])
     ax.errorbar(args.experiment_batch_lenghts, V_vs_SA_blm,  yerr=[V_vs_SA_bldu, V_vs_SA_bldl])
@@ -796,9 +785,19 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
 
     rmse_results = [V_vs_LSW_blm, V_vs_DPLSW_blm, V_vs_SA_blm, v_vs_dpsa_blm]
 
+    with open(f"./{result_path}/results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_"
+              f"{args.epsilon}_{args.delta}.csv", 'a') as csvfile:
+        writer = csv.writer(csvfile)
+        fieldnames = ['Lower Bound', 'Mean', 'Upper Bound']
+        writer.writerow(fieldnames)
+        # for per in range(2):
+        for i in range(len(args.experiment_batch_lenghts)):
+            writer.writerow([V_vs_DPLSW_bldl[i], V_vs_DPLSW_blm[i], V_vs_DPLSW_bldu[i]])
+            writer.writerow([v_vs_dpsa_bldl[i], v_vs_dpsa_blm[i], v_vs_dpsa_bldu[i]])
+            writer.writerow([V_vs_LSW_bldl[i], V_vs_LSW_blm[i], V_vs_LSW_bldu[i]])
+            writer.writerow([V_vs_SA_bldl[i], V_vs_SA_blm[i], V_vs_SA_bldu[i]])
 
     ax.set_xscale('log')
-    ax.set_yscale('log')
     plt.ylabel('(log) RMSE)')
     plt.xlabel('(log) Batch Size')
     plt.legend(["LSW-Real", "DPLSW-Real", "(LSW)SA-Real", "(LSW)DPSA-Real"], loc='upper right')
@@ -810,8 +809,8 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     ax.plot(args.experiment_batch_lenghts, rmse_results[3])
     # ax.plot(args.experiment_batch_lenghts,realV_vs_FVMC)
     # ax.plot(args.experiment_batch_lenghts,LSL_vs_DPLSL)
-    plt.savefig(f"results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_{args.epsilon}_"
-                f"{args.delta}")
+    plt.savefig(f"./{result_path}/results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_"
+                f"{args.epsilon}_{args.delta}.png")
     plt.show()
 
 
@@ -1055,7 +1054,7 @@ if __name__ == "__main__":
     parser.add_argument("--run_SA_DPLSL", action="store_true")   # If true, runs SA_DPLSL
     parser.add_argument("--run_lambda_Exp", action="store_true") # If true, runs Lambda_exp
 
-    parser.add_argument("--experiment_batch_lenghts", nargs='*', default=[5, 10, 20, 30, 40, 50])
+    parser.add_argument("--experiment_batch_lenghts", nargs='*', default=[5, 10, 15, 30])
     parser.add_argument("--reg_coefs", nargs='*', default=[0.1, 1, 10, 100, 1000, 10000])
     parser.add_argument("--pow_exp", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--means", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
