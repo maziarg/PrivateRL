@@ -1054,7 +1054,8 @@ if __name__ == "__main__":
     parser.add_argument("--run_SA_DPLSL", action="store_true")   # If true, runs SA_DPLSL
     parser.add_argument("--run_lambda_Exp", action="store_true") # If true, runs Lambda_exp
 
-    parser.add_argument("--experiment_batch_lenghts", nargs='*', default=[5, 10, 15, 30])
+    parser.add_argument("--experiment_batch_lenghts", nargs='*', default=[5, 50, 100, 200, 300, 500, 1000, 1500, 2000,
+                                                                          10000])
     parser.add_argument("--reg_coefs", nargs='*', default=[0.1, 1, 10, 100, 1000, 10000])
     parser.add_argument("--pow_exp", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--means", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
