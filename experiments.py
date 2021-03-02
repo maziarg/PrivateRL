@@ -688,7 +688,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     sub_sample_size_exponent = 0.75
 
     # Note that as theory suggests number_of_sub_samples_exponent * sub_sample_size_exponent =2
-    batch_size = int(max_batch_size/5)
+    batch_size = int(max_batch_size*args.batch_size_coef)
     for i in range(len(args.experiment_batch_lenghts)):
         temp = math.floor(math.pow(max_batch_size, 2)/math.pow(args.experiment_batch_lenghts[i],
                                                                sub_sample_size_exponent))
@@ -1055,6 +1055,7 @@ if __name__ == "__main__":
                         type=int)  # Max time steps to run environment or train for (this defines buffer size)
     parser.add_argument("--min_number_traj", default=100, type=int)
     parser.add_argument("--num_rounds", default=5, type=int)
+    parser.add_argument("--batch_size_coef", default=0.5, type=float)
 
     parser.add_argument("--run_SA_DPLSW", action="store_true")   # If true, runs SA_DPLSW
     parser.add_argument("--run_SA_DPLSL", action="store_true")   # If true, runs SA_DPLSL
