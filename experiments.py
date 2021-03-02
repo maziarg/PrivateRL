@@ -688,7 +688,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     sub_sample_size_exponent = 0.75
 
     # Note that as theory suggests number_of_sub_samples_exponent * sub_sample_size_exponent =2
-
+    batch_size = int(max_batch_size/5)
     for i in range(len(args.experiment_batch_lenghts)):
         temp = math.floor(math.pow(max_batch_size, 2)/math.pow(args.experiment_batch_lenghts[i],
                                                                sub_sample_size_exponent))
@@ -697,7 +697,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
 
         print(f"Experiment with {number_of_sub_samples} number of sub-samples has just started")
 
-        tempSAE = experiment_list[i].lsw_sub_sample_aggregate_experiment(myMDP, args.experiment_batch_lenghts[i],
+        tempSAE = experiment_list[i].lsw_sub_sample_aggregate_experiment(myMDP, batch_size,
                                                                          args.max_traj_length, number_of_sub_samples,
                                                                          args.epsilon, args.delta, args.delta_prime,
                                                                          experiment_list[0].getPhi(), subSampleSize,

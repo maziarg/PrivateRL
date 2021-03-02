@@ -308,14 +308,14 @@ class MCPE():
         thetaTil_X_priv=thetaTil_X+numpy.reshape(ethaX, (dim,1))
         return [thetaTil_X_priv, thetaTil_X,math.pow(sigma_X,2)]
     
-    def realV(self,myMDP):
-        R=myMDP.getExpextedRewardVec()
-        P=myMDP.getTransitionMatix()
-        gamma=myMDP.getGamma()           
-        I= numpy.identity(len(myMDP.getStateSpace()))
-        bInv=linalg.inv(I-gamma*numpy.mat(P)) 
-        test_temp=bInv*(I-gamma*numpy.mat(P))
-        V_Real=numpy.mat(bInv)*numpy.mat(R)
+    def realV(self, myMDP):
+        R = myMDP.getExpextedRewardVec()
+        P = myMDP.getTransitionMatix()
+        gamma = myMDP.getGamma()
+        I = numpy.identity(len(myMDP.getStateSpace()))
+        bInv = linalg.inv(I-gamma*numpy.mat(P))
+        test_temp = bInv*(I-gamma*numpy.mat(P))
+        V_Real = numpy.mat(bInv)*numpy.mat(R)
         return numpy.ravel(V_Real)
     
     def dynamicRegCoefGen(self, cFactor, numTrajectories,type):
