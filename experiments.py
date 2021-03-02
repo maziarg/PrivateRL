@@ -698,7 +698,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
                                                                          args.epsilon, args.delta, args.delta_prime,
                                                                          experiment_list[0].getPhi(), subSampleSize,
                                                                          result_path)
-        with open(f"~/{result_path}/{args.experiment_batch_lenghts[i]}_{number_of_sub_samples}_{subSampleSize}.npy",
+        with open(os.path.expanduser('~') + f"/{result_path}/{args.experiment_batch_lenghts[i]}_{number_of_sub_samples}_{subSampleSize}.npy",
                   'wb') as f:
             numpy.save(f, tempSAE[0])
             numpy.save(f, tempSAE[1])
@@ -789,7 +789,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
 
     rmse_results = [V_vs_LSW_blm, V_vs_DPLSW_blm, V_vs_SA_blm, v_vs_dpsa_blm]
 
-    with open(f"~/{result_path}/results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_"
+    with open(os.path.expanduser('~') + f"/{result_path}/results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_"
               f"{args.epsilon}_{args.delta}.csv", 'a') as csvfile:
         writer = csv.writer(csvfile)
         fieldnames = ['Lower Bound', 'Mean', 'Upper Bound']
@@ -813,7 +813,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     ax.plot(args.experiment_batch_lenghts, rmse_results[3])
     # ax.plot(args.experiment_batch_lenghts,realV_vs_FVMC)
     # ax.plot(args.experiment_batch_lenghts,LSL_vs_DPLSL)
-    plt.savefig(f"~/{result_path}/results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_"
+    plt.savefig(os.path.expanduser('~') + f"/{result_path}/results_{args.experiment_batch_lenghts}_{number_of_sub_samples}_{subSampleSize}_"
                 f"{args.epsilon}_{args.delta}.png")
     plt.show()
 
@@ -1097,10 +1097,10 @@ if __name__ == "__main__":
         exit()
     print("---------------------------------------")
 
-    if not os.path.exists(f"{os.path.expanduser('~')}/{result_path}/results"):
-        os.makedirs(f"~/{result_path}/results")
+    if not os.path.exists(os.path.expanduser('~') + f"/chap4experiments/{result_path}/results"):
+        os.makedirs(os.path.expanduser('~') + f"/chap4experiments/{result_path}/results")
 
-    result_path = f"{result_path}/results"
+    result_path = f"/chap4experiments/{result_path}/results"
 
     #######################MDP Parameters and Experiment setup###############################
     # if the absorbing state is anything except 39 (goal-state) the trajectory will not terminate
