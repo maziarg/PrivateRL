@@ -201,7 +201,7 @@ class experiment():
 
     def lsw_sub_sample_aggregate_experiment(self, mdp, batchSize, maxTrajectoryLenghth, number_of_sub_samples,
                                             epsilon_star,
-                                            delta_star, delta_prime, Phi, subSampleSize, result_path):
+                                            delta_star, delta_prime, Phi, subSampleSize, result_path, args):
         myMCPE = MCPE(mdp, self.__Phi, self.__policy)
         V = myMCPE.realV(mdp)
         rho = mdp.startStateDistribution()
@@ -217,7 +217,7 @@ class experiment():
         temFVMC = []
         DPLSW_result = []
         tempMCPE = [0, 0]
-        for k in range(self.__numrounds):
+        for k in range(args.num_rounds):
             print(f"round {k} has just started")
             if (self.__batch_gen_param_trigger == "Y"):
                 sample_batch = myMCPE.batchGen(mdp, maxTrajectoryLenghth, batchSize, mdp.getGamma(), self.__policy, rho)
@@ -677,7 +677,7 @@ def run_SALSW_numSubs_experimet(experimentList, myMCPE, myMDP_Params, myExp_Para
     plt.show()
 
 
-def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE, args, myMDP):
+def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE, args, myMDP, max_batch_size):
     exp_results_dpsa = []
     exp_results_sa = []
     exp_results_lsw = []
@@ -690,14 +690,18 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     # Note that as theory suggests number_of_sub_samples_exponent * sub_sample_size_exponent =2
 
     for i in range(len(args.experiment_batch_lenghts)):
-        number_of_sub_samples = math.floor(math.pow(args.experiment_batch_lenghts[i], number_of_sub_samples_exponent))
+        temp = math.floor(math.pow(max_batch_size, 2)/math.pow(args.experiment_batch_lenghts[i],
+                                                               sub_sample_size_exponent))
+        number_of_sub_samples = math.floor(math.pow(temp, 1/number_of_sub_samples_exponent))
+        subSampleSize = args.experiment_batch_lenghts[i]
+
         print(f"Experiment with {number_of_sub_samples} number of sub-samples has just started")
-        subSampleSize = math.floor(math.pow(args.experiment_batch_lenghts[i], sub_sample_size_exponent))
+
         tempSAE = experiment_list[i].lsw_sub_sample_aggregate_experiment(myMDP, args.experiment_batch_lenghts[i],
                                                                          args.max_traj_length, number_of_sub_samples,
                                                                          args.epsilon, args.delta, args.delta_prime,
                                                                          experiment_list[0].getPhi(), subSampleSize,
-                                                                         result_path)
+                                                                         result_path, args)
         with open(result_path + '/' + str(number_of_sub_samples) + '_' + str(subSampleSize)+'.npy','wb') as f:
             numpy.save(f, tempSAE[0])
             numpy.save(f, tempSAE[1])
@@ -1137,8 +1141,8 @@ if __name__ == "__main__":
             weightVector.append(0)
         else:
             weightVector.append(1 / (args.numState - args.numAbsorbingStates))
-
-    run_lsw_sub_sample_aggregate_experiment(result_path, exps, myMCPE, args, myMDP)
+    max_batch_size = sum(1 for line in open("newBatch.txt"))
+    run_lsw_sub_sample_aggregate_experiment(result_path, exps, myMCPE, args, myMDP, max_batch_size)
     # weightVector = numpy.reshape(weightVector,(args.numState,1))
     # run_lambdaExperiment_LSL(exps, args, args, myMDP)
     # run_newGS_LSL_experiments(exps, args, args, myMDP)

@@ -17,7 +17,7 @@ Created on Jan 17, 2016
 
 
 class MCPE():
-    def __init__(self, mdp, featureMatrix, policy, batch_gen_trigger="N", huge_batch_name="huge_batch.txt"):
+    def __init__(self, mdp, featureMatrix, policy, batch_gen_trigger="N", huge_batch_name="newBatch.txt"):
         self.gamma_factor=mdp.getGamma()
         self.MaxRewards=mdp.getMaxReward()
         self.pi=policy
@@ -331,7 +331,7 @@ class MCPE():
         #randIndecies=numpy.random.choice(self.maxBatchLength, (1,numTrajectories), replace=False)
         randIndecies = np.random.choice(self.maxBatchLength, numTrajectories, replace=False)
         batch_file = open(filename, "r")
-        newbatch=self.picklines(filename, randIndecies)
+        newbatch = self.picklines(filename, randIndecies)
         for i in range(numTrajectories):
             #newLine=batch_file.readline(randIndecies[i])
             newLine=newbatch[i]
