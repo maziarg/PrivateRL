@@ -1098,7 +1098,7 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.expanduser('~') + '/chap4experiments/'+ result_path):
         os.makedirs(os.path.expanduser('~') + '/chap4experiments/'+ result_path)
 
-    result_path = os.path.expanduser('~') + '/chap4experiments/' + result_path
+    result_path = str(os.path.expanduser('~') + '/chap4experiments/' + result_path)
 
     #######################MDP Parameters and Experiment setup###############################
     # if the absorbing state is anything except 39 (goal-state) the trajectory will not terminate
