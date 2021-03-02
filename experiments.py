@@ -218,11 +218,12 @@ class experiment():
         DPLSW_result = []
         tempMCPE = [0, 0]
         for k in range(self.__numrounds):
-            # print("round"+str(k)+"has started")
+            print(f"round {k} has just started")
             if (self.__batch_gen_param_trigger == "Y"):
                 sample_batch = myMCPE.batchGen(mdp, maxTrajectoryLenghth, batchSize, mdp.getGamma(), self.__policy, rho)
             else:
                 sample_batch = myMCPE.batchCutoff("newBatch.txt", batchSize)
+                print(f"Batch of size {batchSize} is generated")
             first_visit_monte_carlo = myMCPE.FVMCPE(mdp, self.__Phi, sample_batch)
             DPLSW_result.append(numpy.mat(Phi) * numpy.mat(
                 myMCPE.DPLSW(first_visit_monte_carlo[0], first_visit_monte_carlo[1], mdp, self.__Phi, mdp.getGamma(),
@@ -233,6 +234,7 @@ class experiment():
             resultsDPSA.append(tempMCPE[0])
             resultsSA.append(tempMCPE[1])
             temFVMC.append(numpy.mat(Phi) * numpy.mat(first_visit_monte_carlo[0]))
+            print(f"round {k} has just finished")
 
         return [resultsDPSA, resultsSA, temFVMC, V, DPLSW_result]
 
@@ -689,6 +691,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
 
     for i in range(len(args.experiment_batch_lenghts)):
         number_of_sub_samples = math.floor(math.pow(args.experiment_batch_lenghts[i], number_of_sub_samples_exponent))
+        print(f"Experiment with {number_of_sub_samples} number of sub-samples has just started")
         subSampleSize = math.floor(math.pow(args.experiment_batch_lenghts[i], sub_sample_size_exponent))
         tempSAE = experiment_list[i].lsw_sub_sample_aggregate_experiment(myMDP, args.experiment_batch_lenghts[i],
                                                                          args.max_traj_length, number_of_sub_samples,
@@ -708,6 +711,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
         exp_results_lsw.append(tempSAE[2])
         exp_results_v.append(tempSAE[3])
         exp_results_dplsw.append(tempSAE[4])
+        print(f"Experiment with {number_of_sub_samples} number of sub-samples has just finished")
 
     ax = plt.gca()
     ax.set_prop_cycle(color=['red', 'green', 'blue', 'purple'])
