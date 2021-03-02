@@ -470,7 +470,7 @@ class MCPE():
         lsw = numpy.zeros((len(sub_samples), len(featuresMatrix)))
         first_visit = numpy.zeros((len(sub_samples), len(featuresMatrix)))
         for i in range(len(sub_samples)):
-            print(f"sub-sample number {i} out of {len(sub_samples)} is pass to DP-LSW")
+            print(f"sub-sample number {i} out of {len(sub_samples)} is passed to DP-LSW")
             FVMC = self.FVMCPE(myMDP, featuresMatrix, sub_samples[i])
             DPLSWTemp = self.DPLSW(FVMC[0], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta,
                                    subSampleSize, "uniform", "uniform")
