@@ -17,13 +17,13 @@ Created on Jan 17, 2016
 
 
 class MCPE():
-    def __init__(self, mdp, featureMatrix, policy, batch_gen_trigger="N", huge_batch_name="newBatch.txt"):
+    def __init__(self, mdp, feature_matrix, policy, batch_gen_trigger="N", huge_batch_name="newBatch.txt"):
         self.gamma_factor=mdp.getGamma()
         self.MaxRewards=mdp.getMaxReward()
         self.pi=policy
         self.goalStates=mdp.getGoalstates()
         self.numStates=len(mdp.getStateSpace())
-        self.featureMatrix=featureMatrix
+        self.featureMatrix = feature_matrix
         self.huge_batch_name=huge_batch_name
         self.batch_gen_trigger=batch_gen_trigger
         self.maxBatchLength = sum(1 for line in open(huge_batch_name))
@@ -199,6 +199,7 @@ class MCPE():
         return upperBound  
         
     def DPLSW(self, thetaTild, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta,batchSize, initStateDist="uniform", pi="uniform"):
+
         dim = len(featuresMatrix.T)
         alpha = (5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
         beta = (epsilon/4)/(dim+numpy.math.log(2.0/delta))
@@ -237,11 +238,11 @@ class MCPE():
         temp=math.sqrt(temp)
         return temp
 
-    def LSL(self,FirstVisitVector, myMDP,featuresMatrix,regCoef,numTrajectories,countVector):
-        dim=len(featuresMatrix.T)
-        phiT=featuresMatrix.T
-        Gamma_X=myMDP.getGammaMatrix()
-        I_count=numpy.identity(len(countVector))
+    def LSL(self,FirstVisitVector, myMDP, featuresMatrix, regCoef, numTrajectories, countVector):
+        dim = len(featuresMatrix.T)
+        phiT = featuresMatrix.T
+        Gamma_X = myMDP.getGammaMatrix()
+        I_count = numpy.identity(len(countVector))
         for i in range(len(countVector)):
             I_count[i,i]=countVector[i]
         Gamma_X=Gamma_X*I_count
@@ -259,8 +260,8 @@ class MCPE():
         temp=numpy.mat(invMatrix)*numpy.mat(phiT)
         temp=temp*Gamma_X
         FirstVisitVector=numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1))
-        thetaTil_X=temp*FirstVisitVector     
-        return thetaTil_X
+        thetaTil_X = temp*FirstVisitVector
+        return thetaTil_X.reshape((dim,1))
         
     def DPLSL (self, LSL_Vector, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta, regCoef, numTrajectories, rho, pi="uniform"):
         regCoef=regCoef
@@ -269,22 +270,23 @@ class MCPE():
         thetaTil_X= LSL_Vector #self.LSL(FirstVisitVector, myMDP, featuresMatrix, regCoef, numTrajectories,countXVec)
         normPhi=numpy.linalg.norm(featuresMatrix)
         maxRho=numpy.linalg.norm(Rho,Inf)
-        alpha=(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
-        beta= (epsilon/4)/(dim+numpy.math.log(2.0/delta))
+        alpha =(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
+        beta = (epsilon/4)/(dim+numpy.math.log(2.0/delta))
 
         PsiBetaX = self.SmoothBound_LSL(featuresMatrix, myMDP, countXVec, myMDP.startStateDistribution(), regCoef, beta, numTrajectories)
         
-        sigma_X=2*alpha*myMDP.getMaxReward()*normPhi/(1-myMDP.getGamma())
-        sigma_X=sigma_X/(regCoef-maxRho*numpy.math.pow(normPhi, 2))
-        sigma_X=sigma_X*(numpy.math.pow(PsiBetaX,0.5))
+        sigma_X = 2*alpha*myMDP.getMaxReward()*normPhi/(1-myMDP.getGamma())
+        sigma_X = sigma_X/(regCoef-maxRho*numpy.math.pow(normPhi, 2))
+        sigma_X = sigma_X*(numpy.math.pow(PsiBetaX,0.5))
         
         #print(sigma_X)
-        cov_X=math.pow(sigma_X,2)*numpy.identity(dim)
+        cov_X = math.pow(sigma_X,2)*numpy.identity(dim)
         mean=numpy.zeros(dim)
         ethaX=numpy.random.multivariate_normal(mean,cov_X)
         ethaX=numpy.reshape(ethaX,(len(ethaX),1))
-        thetaTil_X_priv=thetaTil_X+ethaX
-        return [thetaTil_X_priv, thetaTil_X,math.pow(sigma_X,2)]
+        thetaTil_X_priv = thetaTil_X+ethaX
+
+        return [thetaTil_X_priv.reshape((dim,1)), thetaTil_X, math.pow(sigma_X,2)]
     
     def GS_based_DPLSL (self, FirstVisitVector, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta, regCoef, numTrajectories, rho, pi="uniform"):
         dim=len(featuresMatrix.T)
@@ -441,7 +443,8 @@ class MCPE():
         else: 
             return temp/a
     
-    def computeAggregateSmoothBound(self, z,beta, s,mdp,distance_upper_bound):
+    def computeAggregateSmoothBound(self, z, beta, s, mdp, distance_upper_bound):
+
         partitionPoint=int((len(z)+s)/2)
         a= int(s/beta)
         #rho=self.computeRho(partitionPoint, Dists,a)
@@ -483,9 +486,12 @@ class MCPE():
             sum_lsw += lsw[j]
             sum_first_visit += first_visit[j]
 
-        aggregated_private_first_visit = ravel(numpy.mat(featuresMatrix) * numpy.mat(self.DPLSW(sum_first_visit/len(sub_samples), FVMC[1], myMDP, featuresMatrix,
-                                                    myMDP.getGamma(), epsilon_star, delta_star, subSampleSize,
-                                                    "uniform", "uniform")[0]).T)
+        aggregated_private_first_visit = ravel(numpy.mat(featuresMatrix) *
+                                               numpy.mat(self.DPLSW(sum_first_visit/len(sub_samples), FVMC[1], myMDP,
+                                                                    featuresMatrix,
+                                                                    myMDP.getGamma(), epsilon_star,
+                                                                    delta_star, subSampleSize,
+                                                                    "uniform", "uniform")[0]).T)
         #partitionPoint=int((number_of_sub_samples+math.sqrt(number_of_sub_samples))/2)+1
         #first_visit= self.generalized_median(myMDP,lsw,partitionPoint,distUB)
         #first_visit=self.geometric_median(lsw)
@@ -501,35 +507,49 @@ class MCPE():
         #return [first_visit[1]+ethaX,first_visit[1]]
         return [sum_lsw/len(sub_samples), aggregated_private_first_visit]
     
-    def lsl_sub_sample_aggregate(self, batch, s, numberOfsubSamples, myMDP, featuresMatrix, regCoef, pow_exp, numTrajectories, epsilon, delta, distUB, subSampleSize):
-        dim=len(featuresMatrix.T)
-        alpha=(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
-        #beta= (epsilon/4)*(dim+numpy.math.log(2.0/delta))
-        beta= (s/(2*numberOfsubSamples))
-        subSamples=self.subSampleGen(batch, numberOfsubSamples,subSampleSize)
-        z=numpy.zeros((len(subSamples),dim))
+    def lsl_sub_sample_aggregate(self, batch, num_sub_sample_rooted, numberOfsubSamples, myMDP, featuresMatrix,
+                                 epsilon, delta, epsilon_star, delta_star, rho, subSampleSize):
+
+        dim = len(featuresMatrix.T)
+        alpha_star = (5.0*numpy.sqrt(2*numpy.math.log(2.0/delta_star)))/epsilon_star
+        beta_star = (epsilon_star/4)*(dim+numpy.math.log(2.0/delta_star))
+
+        alpha = (5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
+        beta = (epsilon/4)*(dim+numpy.math.log(2.0/delta))
+
+        beta_generalized_median = (num_sub_sample_rooted/(2*numberOfsubSamples))
+        subSamples = self.subSampleGen(batch, numberOfsubSamples, subSampleSize)
+        # sub_sampled_lsl_vectors = numpy.zeros((len(subSamples), dim))
+        # sub_sampled_dplsl_vectors = numpy.zeros((len(subSamples), dim))
+        sub_sampled_lsl_vectors = numpy.zeros((dim, 1))
+        sub_sampled_dplsl_vectors = numpy.zeros((dim, 1))
         for i in range(len(subSamples)):
-            FVMC=self.FVMCPE(myMDP, featuresMatrix, subSamples[i])
+            FVMC = self.FVMCPE(myMDP, featuresMatrix, subSamples[i])
             #regc=self.computeLambdas(myMDP, featuresMatrix,regCoef, len(subSamples[i]), pow_exp)
             #z[i]=numpy.ravel(self.LSL(FVMC[2], myMDP, featuresMatrix,regc[0][0],len(subSamples[i]),FVMC[1]))
-            SA_reidge_coef=100*math.pow(len(subSamples[i]), 0.5)
-            z[i]=numpy.ravel(self.LSL(FVMC[2], myMDP, featuresMatrix,SA_reidge_coef,len(subSamples[i]),FVMC[1]))
+            SA_reidge_coef = 4 * math.pow(len(subSamples[i]), 0.5)
+            #SA_reidge_coef = 1000 * math.pow(len(subSamples[i]), 0.4) # new setting for the ridge coefficient
+            lsl_vector = self.LSL(FVMC[2], myMDP, featuresMatrix, SA_reidge_coef, len(subSamples[i]), FVMC[1])
+            sub_sampled_lsl_vectors += lsl_vector
+            sub_sampled_dplsl_vectors += self.DPLSL(lsl_vector, FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(),
+                                                    epsilon, delta, SA_reidge_coef, len(subSamples[i]), rho)[0]
             #z[i]= numpy.squeeze(numpy.asarray(FVMC[0]))#this is LSW
-            
-        partitionPoint=int((numberOfsubSamples+math.sqrt(numberOfsubSamples))/2)  
-        g= self.generalized_median(myMDP,z,partitionPoint,distUB)
+
+
+
+        # partitionPoint = int((numberOfsubSamples+math.sqrt(numberOfsubSamples))/2)
+        # g = self.generalized_median(myMDP, sub_sampled_lsl_vectors, partitionPoint, distUB)
         #g= self.aggregate_median(myMDP,z)
-        
+
         #To check the following block
-        S_z=self.computeAggregateSmoothBound(z, beta, s,myMDP,distUB)
-        #print(S_z)
-        cov_X=(S_z/alpha)*numpy.identity((dim))
-        ethaX=numpy.random.multivariate_normal(numpy.zeros(dim),cov_X)
-        #print(S_z)
-        #noise=(S_z/alpha)*ethaX
-        #numpy.mat(featuresMatrix)*numpy.mat(g[1]+ethaX)
-        temp_priv = numpy.mat(featuresMatrix)*numpy.mat(g[1]+ethaX).T
-        return [temp_priv, numpy.mat(featuresMatrix)*numpy.mat(g[1]).T]
+        # S_z = self.computeAggregateSmoothBound(sub_sampled_lsl_vectors, beta_generalized_median, num_sub_sample_rooted,
+        #                                        myMDP, distUB)
+        # cov_X = (S_z/alpha_star)*numpy.identity((dim))
+        # ethaX = numpy.random.multivariate_normal(numpy.zeros(dim),cov_X)
+        # temp_priv = numpy.mat(featuresMatrix)*numpy.mat(g[1]+ethaX).T
+
+        return sub_sampled_lsl_vectors/numberOfsubSamples, numpy.mat(featuresMatrix)*numpy.mat(sub_sampled_dplsl_vectors/
+                                                                                              numberOfsubSamples)
     
     def getminLambda(self, myMDP,featurmatrix):
         normPhi=numpy.linalg.norm(featurmatrix)
@@ -598,7 +618,7 @@ class MCPE():
             
     
     def LSTD_lambda(self, featureMatrix, lambda_coef, mdp, trajectory):
-        #eligabilityVMatrix=self.computeEligibilities(featureMatrix, lambda_coef, trajectory, mdp.getGamma())
+        #eligabilityVMatrix=self.computeEligibilities(feature_matrix, lambda_coef, trajectory, mdp.getGamma())
         A_hat=self.compute_LSTD_A_hat(trajectory, featureMatrix, mdp.getGamma(), lambda_coef, mdp.getStateSpace())
         b_hat=self.compute_LSTD_b_hat(trajectory, mdp.getGamma(), lambda_coef, featureMatrix)
         A_hat=numpy.mat(A_hat)

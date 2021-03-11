@@ -17,21 +17,17 @@ class MChain(object):
         '''
         Main MC parameters initialization 
         '''
-        self.__stateSpace = np.array( stateSpace, copy=True )
+        self.__stateSpace = np.array(stateSpace, copy=True)
         self.__stateSpace.flags.writeable = False
         self.__gamma = gamma
         self.__absorbingStates=absorbingStates
         self.__goalStates = goalStates
         self.__maxReward=maxReward
         self.__rewardFunc=rewardFunction
-        
-        
-        self.__transitionModel = self._constructTransitionMatrix( transitionFunction )
-        self.__rewardVec = self._constructExpectedRewardVec( rewardFunction )
-
-        
+        self.__transitionModel = self._constructTransitionMatrix(transitionFunction)
+        self.__rewardVec = self._constructExpectedRewardVec(rewardFunction)
         if startDistribution==None:
-            self.__startStateDist= np.ones( len( self.__stateSpace ) ) / float( len( self.__stateSpace ) )
+            self.__startStateDist= np.ones(len(self.__stateSpace)) / float(len(self.__stateSpace ))
         else:
             self.__startStateDist = np.array( startDistribution, copy=True )
         self.__startStateDist.flags.writeable = False
@@ -46,7 +42,7 @@ class MChain(object):
                 else:
                     gammaMatrix[i].append(0) 
         return gammaMatrix          
-    def _constructTransitionMatrix( self, transitionFunction ):
+    def _constructTransitionMatrix(self, transitionFunction):
         S = self.__stateSpace
         T = np.zeros( ( len( S ) , len( S ) ) )
         for si in range( len( S ) ):
@@ -63,7 +59,6 @@ class MChain(object):
         
     def getTransitionMatix(self):
         return self.__transitionModel
-
 
     def sampleStartState( self ):
         startStateInd = np.argmax( np.random.multinomial( 1, self.__startStateDist))
@@ -87,8 +82,6 @@ class MChain(object):
         detReward= rewardfunc(si, self.__goalStates, self.__maxReward)
         return detReward
         
-        
-        
     def getReward(self,source,dest):
         if dest in self.__goalStates:
             if source in self.__goalStates:
@@ -97,8 +90,7 @@ class MChain(object):
                 return self.__maxReward
         else :
             return 0
-    
-            
+
     def _constructExpectedRewardVec(self,rewardfunc):
         R=[]
         for si in self.getStateSpace():
