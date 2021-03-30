@@ -239,6 +239,96 @@ class experiment():
 
         return [aggregated_lsw, lsw_aggregated, temFVMC, V, DPLSW_result]
 
+    def compute_epsilon_tilde(self, batch_size, sub_sample_size, delta_prime, delta_star, epsilon_star,
+                                number_of_sub_samples):
+        epsilon_tilde = math.log(0.5 + math.sqrt(0.25 + (batch_size * epsilon_star) / (
+                sub_sample_size * (math.sqrt(8 * number_of_sub_samples * math.log(1 / delta_prime))))))
+        return epsilon_tilde
+
+    def compute_delta_tilde(self, batch_size, sub_sample_size, delta_prime, delta_star, epsilon_star,
+                                number_of_sub_samples):
+        delta_tilde = (batch_size * (delta_star - delta_prime) / (sub_sample_size * number_of_sub_samples)) * \
+                (1.0 / (0.5 + math.sqrt(0.25 + (batch_size * epsilon_star) / (
+                        sub_sample_size * (math.sqrt(8 * number_of_sub_samples * math.log(1.0 / delta_prime)))))))
+        return delta_tilde
+
+    def calculate_utility_sub_sample_size(self, epsilon, num_sub_samples, batch_size):
+
+        min = 1000
+
+        final_sub_sample_size = 0
+        final_num_sub_sample = 0
+        min_num_sub_samples = math.floor(math.pow(batch_size, 1.01))
+        max_num_sub_samples = math.floor(math.pow(batch_size, 1.99))
+        min_sub_sample_size = math.floor(math.pow(batch_size, 0.09))
+        max_sub_sample_size = math.floor(math.pow(batch_size, 0.99))
+        for num_sub_samples in range(min_num_sub_samples, max_num_sub_samples):
+            for sub_sample_size in range(min_sub_sample_size, max_sub_sample_size):
+                temp = (math.log((sub_sample_size * num_sub_samples)/batch_size, 2.0))/(sub_sample_size*sub_sample_size *
+                                                                                       num_sub_samples*epsilon*epsilon) \
+                       + 1.0/(sub_sample_size*num_sub_samples*num_sub_samples)
+                if temp < min and temp >0:
+                    min = temp
+                    final_sub_sample_size = sub_sample_size
+                    final_num_sub_sample = num_sub_samples
+        return final_sub_sample_size, final_num_sub_sample
+
+    def compute_parameters(self, batch_size, delta_prime, delta_star, epsilon_star):
+
+        final_sub_sample_size = 0
+        final_num_sub_sample = 0
+
+        min_num_sub_samples = math.floor(math.pow(batch_size, 1.01))
+        max_num_sub_samples = math.floor(math.pow(batch_size, 1.99))
+        min_sub_sample_size = math.floor(math.pow(batch_size, 0.09))
+        max_sub_sample_size = math.floor(math.pow(batch_size, 0.99))
+
+        top_star = math.log(1.0 / delta_star) * math.log(1.25/delta_star)
+        bot_star = math.pow(batch_size, 2) * math.pow(epsilon_star, 2)
+        fraction_star = top_star / bot_star
+
+        for num_sub_samples in range(min_num_sub_samples, max_num_sub_samples):
+            for sub_sample_size in range(min_sub_sample_size, max_sub_sample_size):
+                delta_tilde = self.compute_delta_tilde(batch_size, sub_sample_size, delta_prime, delta_star,
+                                                       epsilon_star, num_sub_samples)
+                epsilon_tilde = self.compute_epsilon_tilde(batch_size, sub_sample_size, delta_prime, delta_star,
+                                                           epsilon_star,
+                                                           num_sub_samples)
+                top_tilde = math.log(1.0 / delta_tilde) * math.log(1.25 / delta_tilde)
+                bot_tilde = num_sub_samples * math.pow(sub_sample_size, 2) * math.pow(epsilon_tilde, 2)
+                fraction_tilde = top_tilde / bot_tilde
+                temp = (fraction_tilde + 1.0/(sub_sample_size* math.pow(num_sub_samples, 2)))
+                print(temp - fraction_star)
+                if temp < fraction_star:
+                    final_sub_sample_size = num_sub_samples
+                    final_num_sub_sample = num_sub_samples
+        return final_sub_sample_size, final_num_sub_sample
+
+    def compute_num_sub_samples(self, batch_size, sub_sample_size, delta_prime, delta_star, epsilon_star):
+        candidates = []
+        difs = []
+        min = 1000
+        for number_of_sub_samples in range(1, int(math.pow(batch_size, 2))):
+            sub_sample_size = math.floor(batch_size/math.pow(number_of_sub_samples, 1))
+            delta_tilde = self.compute_delta_tilde(batch_size, sub_sample_size, delta_prime, delta_star,
+                                                                epsilon_star, number_of_sub_samples)
+            epsilon_tilde = self.compute_epsilon_tilde(batch_size, sub_sample_size, delta_prime, delta_star,
+                                                                                              epsilon_star,
+                                                                                              number_of_sub_samples)
+
+            top_tilde = math.log(1.0 / delta_tilde) #* math.log(1.25 / delta_tilde)
+            bot_tilde = number_of_sub_samples * math.pow(sub_sample_size, 2) * math.pow(epsilon_tilde,2)
+            top_star = math.log(1.0/delta_star) #* math.log(1.25/delta_star)
+            bot_star = math.pow(batch_size, 2) * math.pow(epsilon_star, 2)
+            fraction_tilde = top_tilde/bot_tilde
+            fraction_star = top_star/bot_star
+            if (fraction_tilde + 1.0/(sub_sample_size* math.pow(number_of_sub_samples, 2))) < fraction_star:
+                candidates.append(number_of_sub_samples)
+                difs.append(top_star/bot_star - top_tilde/bot_tilde - 1.0/(number_of_sub_samples *
+                                                                           math.pow(sub_sample_size, 2)))
+        final = candidates[difs.index(min(difs))]
+        return final
+
     def lsl_sub_sample_aggregate_experiment(self, mdp, regCoef, batchSize, pow_exp, maxTrajectoryLenghth,
                                             numberOfsubSamples, num_sub_sample_rooted, epsilon_star, delta_star,
                                             delta_prime, Phi, distUB, subSampleSize, args):
@@ -280,8 +370,9 @@ class experiment():
                                                                                                delta, epsilon_star,
                                                                                                delta_star, rho,
                                                                                                subSampleSize)
+            lsl_reidge_sub_sampled = 4 * math.pow(subSampleSize, 0.5)
             dplsl_sub_sampled_vector = myMCPE.DPLSL(sub_sampled_lsl_vector, FVMC[1], mdp, self.__Phi, mdp.getGamma(),
-                                                    epsilon_star, delta_star, lsl_reidge, len(sampled_batch), rho)[0]
+                                                    epsilon_star, delta_star, lsl_reidge_sub_sampled, len(sampled_batch), rho)[0]
             results_dp_aggregated_subsamples.append(numpy.mat(Phi)*numpy.mat(dplsl_sub_sampled_vector))
             results_aggregated_dp.append(sub_sampled_dplsl_vector)
             temLSL.append(numpy.mat(Phi) * numpy.mat(LSL_result))
@@ -294,6 +385,35 @@ class experiment():
             return maxReward
         else:
             return 0
+
+
+def run_sub_sample_size_experiment(exps, args):
+    results = []
+    batch_size = args.batch_size
+    sub_sample_size = math.floor(math.pow(batch_size, 0.5))
+    num_sub_samples = math.floor(math.pow(batch_size, 0.5))
+    # for epsilon in args.values_epsilon:
+    #     results.append(exps.compute_num_sub_samples(batch_size, sub_sample_size, args.delta_prime, args.delta,
+    #                                                 epsilon))
+
+    for epsilon in args.values_epsilon:
+        results.append(exps.compute_parameters(batch_size, args.delta_prime, args.delta, epsilon))
+
+    ax = plt.gca()
+    ax.set_prop_cycle(color=['red'])
+    ax.plot(results)
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    plt.ylabel('(log10) epsilon')
+    plt.xlabel('sub-sample size')
+    plt.gcf().subplots_adjust(bottom=0.18, left=0.18)
+    plt.tick_params(labelsize=18)
+    ax.legend(["True vs. DP-LSW", "True vs. Aggregation on DP-LSWs", "True vs. DP-LSW on aggregations"], loc='lower left')
+    plt.savefig(result_path + '/' + str(args.delta_prime) + '_' + str(args.delta) + '.png')
+    plt.figure(1)
+    plt.show()
+
 
 def run_lambda_experiment_lsl(experimentList, args, myMDP):
     i = 0
@@ -1036,16 +1156,19 @@ if __name__ == "__main__":
     parser.add_argument("--run_SA_DPLSW", action="store_true")   # If true, runs SA_DPLSW
     parser.add_argument("--run_SA_DPLSL", action="store_true")   # If true, runs SA_DPLSL
     parser.add_argument("--run_lambda_Exp", action="store_true") # If true, runs Lambda_exp
+    parser.add_argument("--run_sub_sample_size_exp", action="store_true")
 
     parser.add_argument("--experiment_batch_lenghts", nargs='+', default=[5], type=int)
     parser.add_argument("--reg_coefs", nargs='*', default=[0.1, 1, 10, 100, 1000, 10000])
     parser.add_argument("--pow_exp", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--means", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--sigmas", nargs='*', default=[0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000])
+    parser.add_argument("--values_epsilon", nargs='*', default=[0.0000000001, 0.000000001, 0.0000001], type=float)
 
-    parser.add_argument("--epsilon", default=0.1)  # privacy parameters
-    parser.add_argument("--delta", default=0.15)  # privacy parameters
-    parser.add_argument("--delta_prime", default=0.1)  # privacy parameters
+    parser.add_argument("--epsilon", default=0.01, type=float)  # privacy parameters
+    parser.add_argument("--delta", default=0.01, type=float)  # privacy parameters
+    parser.add_argument("--delta_prime", default=0.001, type=float)  # privacy parameters
+    parser.add_argument("--batch_size", default=10000, type=int)  # privacy parameters
 
     parser.add_argument("--aggregationFactor", default=1)  # sub-sample and aggregate parameters
     parser.add_argument("--lambdaCoef", nargs='+', default=[10000])  # mini batch coefficient
@@ -1072,6 +1195,8 @@ if __name__ == "__main__":
         result_path = f"SA_dplsl_{args.experiment_batch_lenghts}_{args.epsilon}_{args.delta}"
         print(f"Setting: running DP-LSL, batch_length: {args.experiment_batch_lenghts}, epsilon: {args.epsilon}, "
               f" delta: {args.delta}")
+    elif args.run_sub_sample_size_exp:
+        print("running sub-sample size experiments")
     else:
         exit()
     print("---------------------------------------")
@@ -1122,11 +1247,12 @@ if __name__ == "__main__":
         else:
             weightVector.append(1 / (args.numState - args.numAbsorbingStates))
     max_batch_size = sum(1 for line in open("newBatch.txt"))
-
     if args.run_SA_DPLSW:
         run_lsw_sub_sample_aggregate_experiment(result_path, exps, myMCPE, args, myMDP, max_batch_size)
-    elif args.run_SA_DPLSW:
+    elif args.run_SA_DPLSL:
         run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max_batch_size)
+    elif args.run_sub_sample_size_exp:
+        run_sub_sample_size_experiment(exps[0], args)
     else:
         run_lambda_experiment_lsl(exps, args, myMDP)
 
