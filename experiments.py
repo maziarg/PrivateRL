@@ -329,6 +329,7 @@ class experiment():
         final = candidates[difs.index(min(difs))]
         return final
 
+
     def lsl_sub_sample_aggregate_experiment(self, mdp, regCoef, batchSize, pow_exp, maxTrajectoryLenghth,
                                             numberOfsubSamples, num_sub_sample_rooted, epsilon_star, delta_star,
                                             delta_prime, Phi, distUB, subSampleSize, args):
@@ -816,6 +817,134 @@ def run_sa_lsw_num_sub_samples_experiment(experimentList, myMCPE, myMDP_Params, 
     plt.show()
 
 
+def run_lsw_sub_sample_aggregate_epsilon_experiment(result_path, experiment_list, myMCPE, args, myMDP):
+    exp_results_aggregated_lsw = []
+    exp_results_lsw_aggregated = []
+    exp_results_first_visit_mc = []
+    exp_results_v = []
+    exp_results_dplsw = []
+
+    number_of_sub_samples_exponent = 8.0 / 3.0
+    sub_sample_size_exponent = 0.75
+
+    # Note that as theory suggests number_of_sub_samples_exponent * sub_sample_size_exponent =2
+    #batch_size = int(max_batch_size*args.batch_size_coef)
+
+    for i in range(len(args.values_epsilon)):
+        # temp = math.floor(math.pow(args.experiment_batch_lenghts[i], 2)/math.pow(args.experiment_batch_lenghts[i],
+        #                                                        sub_sample_size_exponent))
+        # number_of_sub_samples = math.floor(math.pow(temp, 1/number_of_sub_samples_exponent))
+        number_of_sub_samples = math.floor(math.pow(args.experiment_batch_lenghts[0], 0.5))
+        subSampleSize = math.floor(math.pow(args.experiment_batch_lenghts[0], 0.5))
+        #subSampleSize = args.experiment_batch_lenghts[i]
+        batch_size = args.experiment_batch_lenghts[0]
+        print(f"Experiment with number of sub-samples: {number_of_sub_samples}")
+        print(f"  batch size:  {batch_size}")
+        print(f"  sub-sample size size:  {subSampleSize}")
+        tempSAE = experiment_list[i].lsw_sub_sample_aggregate_experiment(myMDP, batch_size,
+                                                                         args.max_traj_length, number_of_sub_samples,
+                                                                         args.values_epsilon[i], args.delta,
+                                                                         args.delta_prime,
+                                                                         experiment_list[0].getPhi(), subSampleSize,
+                                                                         result_path, args)
+        with open(result_path + '/' + str(number_of_sub_samples) + '_' + str(subSampleSize)+'.npy','wb') as f:
+            numpy.save(f, tempSAE[0])
+            numpy.save(f, tempSAE[1])
+            numpy.save(f, tempSAE[2])
+            numpy.save(f, tempSAE[3])
+            numpy.save(f, tempSAE[4])
+        exp_results_aggregated_lsw.append(tempSAE[0])
+        exp_results_lsw_aggregated.append(tempSAE[1])
+        exp_results_first_visit_mc.append(tempSAE[2])
+        exp_results_v.append(tempSAE[3])
+        exp_results_dplsw.append(tempSAE[4])
+        print(f"Experiment with {number_of_sub_samples} number of sub-samples has just finished")
+
+    ax = plt.gca()
+    ax.set_prop_cycle(color=['red', 'green', 'blue', 'purple'])
+
+    std_v_vs_aggregated_lsw = numpy.zeros(len(args.values_epsilon))
+    v_vs_aggregated_lsw_mean = numpy.zeros(len(args.values_epsilon))
+    std_v_vs_lsw_aggregated = numpy.zeros(len(args.values_epsilon))
+    v_vs_lsw_aggregated_mean = numpy.zeros(len(args.values_epsilon))
+    std_vaht_vs_trueV = numpy.zeros(len(args.values_epsilon))
+    vhat_vs_trueV_mean = numpy.zeros(len(args.values_epsilon))
+    std_V_vs_DPLSW = numpy.zeros(len(args.values_epsilon))
+    V_vs_DPLSW_mean = numpy.zeros(len(args.values_epsilon))
+
+    dim = len(experiment_list[0].getPhi())
+
+    for j in range(len(args.values_epsilon)):
+        aggregated_lsw = [[] for x in range(len(args.values_epsilon))]
+        lsw_aggregated = [[] for x in range(len(args.values_epsilon))]
+        true_value_vector = numpy.reshape(exp_results_v[j], (len(experiment_list[i].getPhi()), 1))
+        tempLSW = [[] for x in range(len(args.values_epsilon))]
+        tempDPLSW = [[] for x in range(len(args.values_epsilon))]
+
+        for k in range(args.num_rounds):
+            aggregated_lsw[j].append(
+                myMCPE.weighted_dif_L2_norm(myMDP, true_value_vector, numpy.reshape(exp_results_aggregated_lsw[j][k], (dim, 1))))
+            lsw_aggregated[j].append(myMCPE.weighted_dif_L2_norm(myMDP, true_value_vector, numpy.reshape(exp_results_lsw_aggregated[j][k], (dim, 1))))
+            vhat = numpy.reshape(exp_results_first_visit_mc[j][k], (dim, 1))
+            tempLSW[j].append(myMCPE.weighted_dif_L2_norm(myMDP, true_value_vector, vhat))
+            vhatDPLSW = numpy.reshape(exp_results_dplsw[j][k], (dim, 1))
+            tempDPLSW[j].append(myMCPE.weighted_dif_L2_norm(myMDP, true_value_vector, vhatDPLSW))
+
+        vhat_vs_trueV_mean[j] = numpy.mean(numpy.array(tempLSW[j]), axis=0)
+        std_vaht_vs_trueV[j] = sem(numpy.array(tempLSW[j]), axis=0)
+
+        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)
+        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)
+
+        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)
+        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)
+
+        v_vs_lsw_aggregated_mean[j] = numpy.mean(numpy.array(lsw_aggregated[j]), axis=0)
+        std_v_vs_lsw_aggregated[j] = sem(numpy.array(lsw_aggregated[j]), axis=0)
+
+    rmse_results = [vhat_vs_trueV_mean, V_vs_DPLSW_mean, v_vs_lsw_aggregated_mean, v_vs_aggregated_lsw_mean]
+    std_results = [std_vaht_vs_trueV, std_V_vs_DPLSW, std_v_vs_lsw_aggregated, std_v_vs_aggregated_lsw]
+
+    with open(result_path + '/' + str(number_of_sub_samples) + '_' +str(subSampleSize) +'.csv', 'a') \
+            as csvfile:
+        writer = csv.writer(csvfile)
+        fieldnames = ['mean', 'std']
+        writer.writerow(fieldnames)
+        # for per in range(2):
+        for i in range(len(args.values_epsilon)):
+            #writer.writerow([V_vs_DPLSW_mean[i], std_V_vs_DPLSW[i]])
+            writer.writerow([v_vs_aggregated_lsw_mean[i], std_v_vs_aggregated_lsw[i]])
+            writer.writerow([vhat_vs_trueV_mean[i], std_vaht_vs_trueV[i]])
+            writer.writerow([v_vs_lsw_aggregated_mean[i], std_v_vs_lsw_aggregated[i]])
+
+    # ax.plot(args.experiment_batch_lenghts, rmse_results[0], alpha=0.5)
+    # ax.fill_between(args.experiment_batch_lenghts, rmse_results[0] - std_results[0], rmse_results[0] + std_results[0],
+    #                 alpha=0.21, linewidth=0)
+    ax.plot(args.values_epsilon, rmse_results[1], alpha=0.5)
+    ax.fill_between(args.values_epsilon, rmse_results[1] - std_results[1], rmse_results[1] + std_results[1],
+                    alpha=0.21, linewidth=0)
+
+    ax.plot(args.values_epsilon, rmse_results[3], alpha=0.5)
+    ax.fill_between(args.values_epsilon, rmse_results[3] - std_results[3], rmse_results[3] + std_results[3],
+                    alpha=0.21, linewidth=0)
+
+    ax.plot(args.values_epsilon, rmse_results[2], alpha=0.5)
+    ax.fill_between(args.values_epsilon, rmse_results[2] - std_results[2], rmse_results[2] + std_results[2],
+                    alpha=0.21, linewidth=0)
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    # plt.ylabel('(log) W-RMSE')
+    # plt.xlabel('(log) Batch Size')
+    plt.gcf().subplots_adjust(bottom=0.18, left=0.18)
+    plt.tick_params(labelsize=18)
+    # plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
+    # ax.legend(["True vs. DP-LSW", "True vs. Aggregation on DP-LSWs", "True vs. DP-LSW on aggregations"], loc='lower left')
+    plt.savefig(result_path + '/' + str(number_of_sub_samples) + '_' + str(subSampleSize) + '.png')
+    plt.figure(1)
+    plt.show()
+
+
 def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE, args, myMDP, max_batch_size):
     exp_results_aggregated_lsw = []
     exp_results_lsw_aggregated = []
@@ -887,18 +1016,18 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
             tempLSW[j].append(myMCPE.weighted_dif_L2_norm(myMDP, true_value_vector, vhat))
             vhatDPLSW = numpy.reshape(exp_results_dplsw[j][k], (dim, 1))
             tempDPLSW[j].append(myMCPE.weighted_dif_L2_norm(myMDP, true_value_vector, vhatDPLSW))
+        alpha = math.pow(10, j)
+        vhat_vs_trueV_mean[j] = numpy.mean(numpy.array(tempLSW[j]), axis=0)/alpha
+        std_vaht_vs_trueV[j] = sem(numpy.array(tempLSW[j]), axis=0)/alpha
 
-        vhat_vs_trueV_mean[j] = numpy.mean(numpy.array(tempLSW[j]), axis=0)
-        std_vaht_vs_trueV[j] = sem(numpy.array(tempLSW[j]), axis=0)
+        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)/alpha
+        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)/alpha
 
-        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)
-        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)
+        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)/alpha
+        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)/alpha
 
-        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)
-        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)
-
-        v_vs_lsw_aggregated_mean[j] = numpy.mean(numpy.array(lsw_aggregated[j]), axis=0)
-        std_v_vs_lsw_aggregated[j] = sem(numpy.array(lsw_aggregated[j]), axis=0)
+        v_vs_lsw_aggregated_mean[j] = numpy.mean(numpy.array(lsw_aggregated[j]), axis=0)/alpha
+        std_v_vs_lsw_aggregated[j] = sem(numpy.array(lsw_aggregated[j]), axis=0)/alpha
 
     rmse_results = [vhat_vs_trueV_mean, V_vs_DPLSW_mean, v_vs_lsw_aggregated_mean, v_vs_aggregated_lsw_mean]
     std_results = [std_vaht_vs_trueV, std_V_vs_DPLSW, std_v_vs_lsw_aggregated, std_v_vs_aggregated_lsw]
@@ -910,7 +1039,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
         writer.writerow(fieldnames)
         # for per in range(2):
         for i in range(len(args.experiment_batch_lenghts)):
-            writer.writerow([V_vs_DPLSW_mean[i], std_V_vs_DPLSW[i]])
+            #writer.writerow([V_vs_DPLSW_mean[i], std_V_vs_DPLSW[i]])
             writer.writerow([v_vs_aggregated_lsw_mean[i], std_v_vs_aggregated_lsw[i]])
             writer.writerow([vhat_vs_trueV_mean[i], std_vaht_vs_trueV[i]])
             writer.writerow([v_vs_lsw_aggregated_mean[i], std_v_vs_lsw_aggregated[i]])
@@ -932,12 +1061,12 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    plt.ylabel('(log) RMSE')
-    plt.xlabel('(log) Batch Size')
+    # plt.ylabel('(log) W-RMSE')
+    # plt.xlabel('(log) Batch Size')
     plt.gcf().subplots_adjust(bottom=0.18, left=0.18)
     plt.tick_params(labelsize=18)
-    plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
-    ax.legend(["True vs. DP-LSW", "True vs. Aggregation on DP-LSWs", "True vs. DP-LSW on aggregations"], loc='lower left')
+    # plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
+    # ax.legend(["True vs. DP-LSW", "True vs. Aggregation on DP-LSWs", "True vs. DP-LSW on aggregations"], loc='lower left')
     plt.savefig(result_path + '/' + str(number_of_sub_samples) + '_' + str(subSampleSize) + '.png')
     plt.figure(1)
     plt.show()
@@ -1100,9 +1229,9 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
         mean_v_vs_sub_sampled_privatized_aggregated[j] = numpy.mean(numpy.array(lsl_aggregated[j]), axis=0)
         std_v_vs_dplsl_aggregated[j] = sem(numpy.array(lsl_aggregated[j]), axis=0)
 
-    rmse_results = [mean_v_vs_lsl, mean_v_vs_dplsl, mean_v_vs_sub_sampled_privatized_aggregated,
-                    mean_v_vs_sub_sampled_lsl_aggregated_privatized]
-    std_results = [std_v_vs_lsl, std_v_vs_dplsl, std_v_vs_dplsl_aggregated, std_v_vs_aggregated_dplsl]
+    rmse_results = [mean_v_vs_lsl/100, mean_v_vs_dplsl/100, mean_v_vs_sub_sampled_privatized_aggregated/100,
+                    mean_v_vs_sub_sampled_lsl_aggregated_privatized/1000]
+    std_results = [std_v_vs_lsl/(100), std_v_vs_dplsl/(100), std_v_vs_dplsl_aggregated/(100), std_v_vs_aggregated_dplsl/(100)]
 
     with open(result_path + '/' + str(num_sub_samples) + '_' + str(sub_sample_size) + '.csv', 'a') \
             as csvfile:
@@ -1111,7 +1240,7 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
         writer.writerow(fieldnames)
         # for per in range(2):
         for i in range(len(args.experiment_batch_lenghts)):
-            writer.writerow([mean_v_vs_lsl[i], std_v_vs_lsl[i]])
+            #writer.writerow([mean_v_vs_lsl[i], std_v_vs_lsl[i]])
             writer.writerow([mean_v_vs_dplsl[i], std_v_vs_dplsl[i]])
             writer.writerow([mean_v_vs_sub_sampled_privatized_aggregated[i], std_v_vs_dplsl_aggregated[i]])
             writer.writerow([mean_v_vs_sub_sampled_lsl_aggregated_privatized[i], std_v_vs_aggregated_dplsl[i]])
@@ -1130,12 +1259,12 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
                     alpha=0.21, linewidth=0)
     ax.set_xscale('log')
     ax.set_yscale('log')
-    plt.ylabel('(log) RMSE')
-    plt.xlabel('(log) Batch Size')
+    # plt.ylabel('(log) RMSE')
+    # plt.xlabel('(log) Batch Size')
     plt.gcf().subplots_adjust(bottom=0.18, left=0.18)
     plt.tick_params(labelsize=18)
-    plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
-    ax.legend(["True vs. DP-LSL", "True vs. Aggregation on DP-LSLs", "True vs. DP-LSL on Aggregation"], loc='lower left')
+    # plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
+    # ax.legend(["True vs. DP-LSL", "True vs. Aggregation on DP-LSLs", "True vs. DP-LSL on Aggregation"], loc='lower left')
     #ax.legend(["Ture-DP-LSL", "True-Aggregated DP-LSL"], loc='upper right')
     plt.savefig(result_path + '/' + str(num_sub_samples) + '_' + str(sub_sample_size) + '.png')
     plt.figure(1)
@@ -1157,20 +1286,24 @@ if __name__ == "__main__":
     parser.add_argument("--run_SA_DPLSL", action="store_true")   # If true, runs SA_DPLSL
     parser.add_argument("--run_lambda_Exp", action="store_true") # If true, runs Lambda_exp
     parser.add_argument("--run_sub_sample_size_exp", action="store_true")
+    parser.add_argument("--run_SA_DPLSW_epsilon", action="store_true")   # If true, runs SA_DPLSW_epsilon
+    parser.add_argument("--run_SA_DPLSL_epsilon", action="store_true")  # If true, runs SA_DPLSL_epsilon
 
-    parser.add_argument("--experiment_batch_lenghts", nargs='+', default=[5], type=int)
+
+    parser.add_argument("--experiment_batch_lenghts", nargs='+', default=[500], type=int)
     parser.add_argument("--reg_coefs", nargs='*', default=[0.1, 1, 10, 100, 1000, 10000])
     parser.add_argument("--pow_exp", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--means", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--sigmas", nargs='*', default=[0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000])
-    parser.add_argument("--values_epsilon", nargs='*', default=[0.0000000001, 0.000000001, 0.0000001], type=float)
+    parser.add_argument("--values_epsilon", nargs='*', default=[0.0000000001, 0.000000001, 0.0000001, 0.000001, 0.00001,
+                                                                0.0001, 0.001, 0.01, 0.1], type=float)
 
     parser.add_argument("--epsilon", default=0.01, type=float)  # privacy parameters
     parser.add_argument("--delta", default=0.01, type=float)  # privacy parameters
     parser.add_argument("--delta_prime", default=0.001, type=float)  # privacy parameters
     parser.add_argument("--batch_size", default=10000, type=int)  # privacy parameters
 
-    parser.add_argument("--aggregationFactor", default=1)  # sub-sample and aggregate parameters
+    parser.add_argument("--aggregationFactor", default=1, type=int)  # Function Approximation Parameter
     parser.add_argument("--lambdaCoef", nargs='+', default=[10000])  # mini batch coefficient
     parser.add_argument("--number_of_subsamples", default=10)  # number of sub-samples for SA framework
     parser.add_argument("--distUB", default=10)
@@ -1197,6 +1330,8 @@ if __name__ == "__main__":
               f" delta: {args.delta}")
     elif args.run_sub_sample_size_exp:
         print("running sub-sample size experiments")
+    elif args.run_SA_DPLSW_epsilon:
+        result_path = f"SA_dplsw_epsilons_{args.experiment_batch_lenghts}_{args.epsilon}_{args.delta}"
     else:
         exit()
     print("---------------------------------------")
@@ -1225,10 +1360,14 @@ if __name__ == "__main__":
     #####################Generating the feature matrix#############################
 
     exps = []
-
-    for k in range(len(args.experiment_batch_lenghts)):
-        exps.append(experiment(args.aggregationFactor, stateSpace, args.epsilon, args.delta,
-                               lambdaClass, args.num_rounds, args.experiment_batch_lenghts[k], policy))
+    if args.run_SA_DPLSW_epsilon or args.run_SA_DPLSL_epsilon:
+        for k in range(len(args.values_epsilon)):
+            exps.append(experiment(args.aggregationFactor, stateSpace, args.values_epsilon[k], args.delta,
+                                   lambdaClass, args.num_rounds, args.experiment_batch_lenghts[0], policy))
+    else:
+        for k in range(len(args.experiment_batch_lenghts)):
+            exps.append(experiment(args.aggregationFactor, stateSpace, args.epsilon, args.delta,
+                                   lambdaClass, args.num_rounds, args.experiment_batch_lenghts[k], policy))
 
     # if args.aggregationFactor == 1 then we will have tabular setting
     featureMatrix = exps[0].featureProducer(args.aggregationFactor, stateSpace)
@@ -1254,7 +1393,7 @@ if __name__ == "__main__":
     elif args.run_sub_sample_size_exp:
         run_sub_sample_size_experiment(exps[0], args)
     else:
-        run_lambda_experiment_lsl(exps, args, myMDP)
+        run_lsw_sub_sample_aggregate_epsilon_experiment(result_path, exps, myMCPE, args, myMDP)
 
     # weightVector = numpy.reshape(weightVector,(args.numState,1))
     # run_newGS_LSL_experiments(exps, args, args, myMDP)
