@@ -25,7 +25,7 @@ class MCPE():
         self.numStates=len(mdp.getStateSpace())
         self.featureMatrix = feature_matrix
         self.huge_batch_name=huge_batch_name
-        self.batch_gen_trigger=batch_gen_trigger
+        self.batch_gen_trigger= batch_gen_trigger
         self.maxBatchLength = sum(1 for line in open(huge_batch_name))
         #To Do: 200 is set manually here, which is wrong, this needs to be fixed
         if batch_gen_trigger=="Y":
@@ -483,15 +483,17 @@ class MCPE():
         
         sub_samples = self.subSampleGen(batch, numberOfsubSamples, subSampleSize)
         lsw = numpy.zeros((len(sub_samples), len(featuresMatrix)))
-        first_visit = numpy.zeros((len(sub_samples), len(featuresMatrix)))
+        first_visit = numpy.zeros((len(sub_samples), dim))
         for i in range(len(sub_samples)):
             print(f"sub-sample number {i} out of {len(sub_samples)} is passed to DP-LSW")
             FVMC = self.FVMCPE(myMDP, featuresMatrix, sub_samples[i])
             DPLSWTemp = self.DPLSW(FVMC[2], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta,
                                    subSampleSize, "uniform", "uniform")
             first_visit[i] = ravel(FVMC[0])
-            lsw[i] = ravel(numpy.mat(featuresMatrix)*numpy.mat(DPLSWTemp[0]).T) #this is LSW
-        sum_lsw = numpy.zeros(dim)
+            mat_temp = numpy.mat(DPLSWTemp[0]).transpose()
+            mat_phi_temp = numpy.mat(featuresMatrix)
+            lsw[i] = np.ravel(mat_phi_temp * mat_temp )# this is LSW
+        sum_lsw = numpy.zeros(len(featuresMatrix))
         sum_first_visit = numpy.zeros(dim)
         
         for j in range(len(lsw)):
@@ -620,7 +622,8 @@ class MCPE():
         for i in range(len(trajectory)):
             b+=self.computeEligibilityVector(lambda_coef, gamma, i,dim,featurematrix)*trajectory[i][1]
         return b/(len(trajectory)-1)
-    def computeEligibilityVector(self, lambdaCoef, gamma, index,dim,featureMatrix):
+
+    def computeEligibilityVector(self, lambdaCoef, gamma, index, dim,featureMatrix):
         z_i= numpy.zeros((1,dim))
         for j in range(index):
             phi_j=featureMatrix[j][:]
