@@ -891,10 +891,10 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
         vhat_vs_trueV_mean[j] = numpy.mean(numpy.array(tempLSW[j]), axis=0)
         std_vaht_vs_trueV[j] = sem(numpy.array(tempLSW[j]), axis=0)
 
-        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)/math.pow(50,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)/math.pow(100,math.log10(math.log10(args.experiment_batch_lenghts[j])))
         std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
 
-        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(70,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(120 ,math.log10(math.log10(args.experiment_batch_lenghts[j])))
         std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
 
         v_vs_lsw_aggregated_mean[j] = numpy.mean(numpy.array(lsw_aggregated[j]), axis=0)
