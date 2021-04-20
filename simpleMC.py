@@ -34,7 +34,7 @@ class MChain(object):
     def getGoalstates(self):
         return self.__goalStates        
     def getGammaMatrix(self):  
-        gammaMatrix= [[ ] for y in range(len(self.__stateSpace))]   
+        gammaMatrix = [[ ] for y in range(len(self.__stateSpace))]
         for i in range(len(self.__stateSpace)):
             for j in range(len(self.__stateSpace)):
                 if i is j:

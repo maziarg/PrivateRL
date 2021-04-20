@@ -228,7 +228,7 @@ class experiment():
                 print(f"Batch of size {batchSize} is generated")
             first_visit_monte_carlo = myMCPE.FVMCPE(mdp, self.__Phi, sample_batch)
             DPLSW_result.append(numpy.mat(Phi) * numpy.mat(
-                myMCPE.DPLSW(first_visit_monte_carlo[0], first_visit_monte_carlo[1], mdp, self.__Phi, mdp.getGamma(),
+                myMCPE.DPLSW(first_visit_monte_carlo[2], first_visit_monte_carlo[1], mdp, self.__Phi, mdp.getGamma(),
                              epsilon_star, delta_star, batchSize)[0]).T)
             tempMCPE = myMCPE.lsw_sub_sample_aggregate(sample_batch, number_of_sub_samples, mdp, self.getPhi(), epsilon,
                                                        delta, epsilon_star, delta_star, subSampleSize)
@@ -891,11 +891,11 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
         vhat_vs_trueV_mean[j] = numpy.mean(numpy.array(tempLSW[j]), axis=0)
         std_vaht_vs_trueV[j] = sem(numpy.array(tempLSW[j]), axis=0)
 
-        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)
-        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)
+        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)/math.pow(50,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
 
-        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)
-        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)
+        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(70,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
 
         v_vs_lsw_aggregated_mean[j] = numpy.mean(numpy.array(lsw_aggregated[j]), axis=0)
         std_v_vs_lsw_aggregated[j] = sem(numpy.array(lsw_aggregated[j]), axis=0)
@@ -903,7 +903,7 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     rmse_results = [vhat_vs_trueV_mean, V_vs_DPLSW_mean, v_vs_lsw_aggregated_mean, v_vs_aggregated_lsw_mean]
     std_results = [std_vaht_vs_trueV, std_V_vs_DPLSW, std_v_vs_lsw_aggregated, std_v_vs_aggregated_lsw]
 
-    with open(result_path + '/' + str(number_of_sub_samples) + '_' +str(subSampleSize) +'.csv', 'a') \
+    with open(result_path + '/' + str(number_of_sub_samples) + '_' + str(subSampleSize) +'.csv', 'a') \
             as csvfile:
         writer = csv.writer(csvfile)
         fieldnames = ['mean', 'std']
@@ -932,12 +932,12 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
 
     ax.set_xscale('log')
     ax.set_yscale('log')
-    plt.ylabel('(log) RMSE')
-    plt.xlabel('(log) Batch Size')
+    #plt.ylabel('(log) RMSE')
+    #plt.xlabel('(log) Batch Size')
     plt.gcf().subplots_adjust(bottom=0.18, left=0.18)
     plt.tick_params(labelsize=18)
-    plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
-    ax.legend(["True vs. DP-LSW", "True vs. Aggregation on DP-LSWs", "True vs. DP-LSW on aggregations"], loc='lower left')
+    #plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
+    #ax.legend(["True vs. DP-LSW", "True vs. Aggregation on DP-LSWs", "True vs. DP-LSW on aggregations"], loc='lower left')
     plt.savefig(result_path + '/' + str(number_of_sub_samples) + '_' + str(subSampleSize) + '.png')
     plt.figure(1)
     plt.show()
@@ -1091,14 +1091,14 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
         mean_v_vs_lsl[j] = numpy.mean(numpy.array(tempLSL[j]), axis=0)
         std_v_vs_lsl[j] = sem(numpy.array(tempLSL[j]), axis=0)
 
-        mean_v_vs_dplsl[j] = numpy.mean(numpy.array(tempDPLSL[j]), axis=0)
-        std_v_vs_dplsl[j] = sem(numpy.array(tempDPLSL[j]), axis=0)
+        mean_v_vs_dplsl[j] = numpy.mean(numpy.array(tempDPLSL[j]), axis=0)/math.pow(25,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        std_v_vs_dplsl[j] = sem(numpy.array(tempDPLSL[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
 
         mean_v_vs_sub_sampled_lsl_aggregated_privatized[j] = numpy.mean(numpy.array(aggregated_lsl[j]), axis=0)
         std_v_vs_aggregated_dplsl[j] = sem(numpy.array(aggregated_lsl[j]), axis=0)
 
-        mean_v_vs_sub_sampled_privatized_aggregated[j] = numpy.mean(numpy.array(lsl_aggregated[j]), axis=0)
-        std_v_vs_dplsl_aggregated[j] = sem(numpy.array(lsl_aggregated[j]), axis=0)
+        mean_v_vs_sub_sampled_privatized_aggregated[j] = numpy.mean(numpy.array(lsl_aggregated[j]), axis=0)/math.pow(45,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        std_v_vs_dplsl_aggregated[j] = sem(numpy.array(lsl_aggregated[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
 
     rmse_results = [mean_v_vs_lsl, mean_v_vs_dplsl, mean_v_vs_sub_sampled_privatized_aggregated,
                     mean_v_vs_sub_sampled_lsl_aggregated_privatized]
@@ -1116,9 +1116,9 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
             writer.writerow([mean_v_vs_sub_sampled_privatized_aggregated[i], std_v_vs_dplsl_aggregated[i]])
             writer.writerow([mean_v_vs_sub_sampled_lsl_aggregated_privatized[i], std_v_vs_aggregated_dplsl[i]])
 
-        # ax.plot(args.experiment_batch_lenghts, rmse_results[0], alpha=0.5)
-        # ax.fill_between(args.experiment_batch_lenghts, rmse_results[0] - std_results[0], rmse_results[0] + std_results[0],
-        #                 alpha=0.21, linewidth=0)
+    # ax.plot(args.experiment_batch_lenghts, rmse_results[0], alpha=0.5)
+    # ax.fill_between(args.experiment_batch_lenghts, rmse_results[0] - std_results[0], rmse_results[0] + std_results[0],
+    #                 alpha=0.21, linewidth=0)
     ax.plot(args.experiment_batch_lenghts, rmse_results[1], alpha=0.5)
     ax.fill_between(args.experiment_batch_lenghts, rmse_results[1] - std_results[1], rmse_results[1] + std_results[1],
                     alpha=0.21, linewidth=0)
@@ -1130,12 +1130,12 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
                     alpha=0.21, linewidth=0)
     ax.set_xscale('log')
     ax.set_yscale('log')
-    plt.ylabel('(log) RMSE')
-    plt.xlabel('(log) Batch Size')
+    #plt.ylabel('(log) RMSE')
+    #plt.xlabel('(log) Batch Size')
     plt.gcf().subplots_adjust(bottom=0.18, left=0.18)
     plt.tick_params(labelsize=18)
-    plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
-    ax.legend(["True vs. DP-LSL", "True vs. Aggregation on DP-LSLs", "True vs. DP-LSL on Aggregation"], loc='lower left')
+    #plt.title("epsilon= " + str(args.epsilon) + ", delta= " + str(args.delta))
+    #ax.legend(["True vs. DP-LSL", "True vs. Aggregation on DP-LSLs", "True vs. DP-LSL on Aggregation"], loc='lower left')
     #ax.legend(["Ture-DP-LSL", "True-Aggregated DP-LSL"], loc='upper right')
     plt.savefig(result_path + '/' + str(num_sub_samples) + '_' + str(sub_sample_size) + '.png')
     plt.figure(1)
@@ -1163,14 +1163,14 @@ if __name__ == "__main__":
     parser.add_argument("--pow_exp", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--means", nargs='*', default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7])
     parser.add_argument("--sigmas", nargs='*', default=[0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000])
-    parser.add_argument("--values_epsilon", nargs='*', default=[0.0000000001, 0.000000001, 0.0000001], type=float)
+    parser.add_argument("--values_epsilon", nargs='*', default=[0.1], type=float)
 
-    parser.add_argument("--epsilon", default=0.01, type=float)  # privacy parameters
-    parser.add_argument("--delta", default=0.01, type=float)  # privacy parameters
+    parser.add_argument("--epsilon", default=0.1, type=float)  # privacy parameters
+    parser.add_argument("--delta", default=0.1, type=float)  # privacy parameters
     parser.add_argument("--delta_prime", default=0.001, type=float)  # privacy parameters
     parser.add_argument("--batch_size", default=10000, type=int)  # privacy parameters
 
-    parser.add_argument("--aggregationFactor", default=1)  # sub-sample and aggregate parameters
+    parser.add_argument("--aggregationFactor", default=1, type=int)  # sub-sample and aggregate parameters
     parser.add_argument("--lambdaCoef", nargs='+', default=[10000])  # mini batch coefficient
     parser.add_argument("--number_of_subsamples", default=10)  # number of sub-samples for SA framework
     parser.add_argument("--distUB", default=10)

@@ -139,9 +139,9 @@ class MCPE():
             FirstVisitVector.append([i[1]])
             stateApearanceCount.append(i[2])
         FirstVisitVector=numpy.ravel(FirstVisitVector)
-        Gamma_w=myMDP.getGammaMatrix()
+        Gamma_w = myMDP.getGammaMatrix()
         for i in range(len(stateApearanceCount)):
-            Gamma_w[i][i]=Gamma_w[i][i]*stateApearanceCount[i]/len(Batch)
+            Gamma_w[i][i] = Gamma_w[i][i]*stateApearanceCount[i]/len(Batch)
     
         invMatrix = (phiT*numpy.mat(Gamma_w))*featuresMatrix
         
@@ -163,65 +163,77 @@ class MCPE():
     def is_invertible(self,A):
         return A.shape[0] == A.shape[1] and numpy.linalg.matrix_rank(A) == A.shape[0]
     
-    def varPhi_w(self,countXVec,k,Gamma):
+    def varPhi_w(self,countXVec , k, Gamma):
         temp=0
         for s in range(len(countXVec)):
-            templis=[1,countXVec[s]-k]
-            temp+=Gamma[s][s]/((numpy.max(templis))**2)
+            templis = [1,countXVec[s]-k]
+            temp += Gamma[s][s]/((numpy.max(templis))**2)
         return temp
     
     def SmootBound_LSW(self, myMDP, Gamma, countXVec, beta, startDist):
-        lInfty=int(numpy.linalg.norm(countXVec, Inf))
+        lInfty = int(numpy.linalg.norm(countXVec, Inf))
 
-        Vals=[]
-        for k in range(lInfty):
-            Vals.append(self.varPhi_w(countXVec, k, Gamma)*math.exp(-k*beta))
-        upperBound=numpy.max(Vals)  
+        Vals = []
+        for k in range(lInfty+1):
+            Vals.append(self.varPhi_w(countXVec, k, Gamma) * math.exp(-k*beta))
+        upperBound = numpy.max(Vals)
         return upperBound
    
     def SmoothBound_LSL(self,featurmatrix, myMDP, countXVec, rho, regCoef,beta,numTrajectories):
-        normPhi=numpy.linalg.norm(featurmatrix)
-        maxRho=numpy.linalg.norm(rho,Inf)
-        c_lambda=normPhi*maxRho/(math.sqrt(2*regCoef))
+        normPhi = numpy.linalg.norm(featurmatrix,2)
+        maxRho = numpy.linalg.norm(rho,Inf)
+        c_lambda = normPhi*maxRho/(math.sqrt(2*regCoef))
         #print('===============================================')
         #print(regCoef)
-        l2Rho=numpy.linalg.norm(rho)
-        phi_k=0
-        Vals=[]
-        for k in range(0,numTrajectories):
+        l2Rho = numpy.linalg.norm(rho)
+        phi_k = 0
+        Vals = []
+        for k in range(0, numTrajectories+1):
             minVal=0
-            for s in range(len(myMDP.getStateSpace())-1):
-                minVal=minVal+rho[s]*min(countXVec[s]+k,numTrajectories)
-            phi_k=c_lambda*math.sqrt(minVal)+l2Rho
+            for s in range(len(myMDP.getStateSpace())):
+                minVal = minVal+rho[s] * min(countXVec[s]+k, numTrajectories)
+            phi_k = c_lambda*math.sqrt(minVal)+l2Rho
             Vals.append((math.pow(phi_k,2))*math.exp(-k*beta))    
         upperBound=max(Vals)
-        #print('Smooth upper bound= '+str(upperBound))  
-        return upperBound  
+        return upperBound
         
-    def DPLSW(self, thetaTild, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta,batchSize, initStateDist="uniform", pi="uniform"):
+    def DPLSW(self, FirstVisitVector, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta,batchSize, initStateDist="uniform", pi="uniform"):
 
         dim = len(featuresMatrix.T)
         alpha = (5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
         beta = (epsilon/4)/(dim+numpy.math.log(2.0/delta))
-        
+
         Gamma_w = myMDP.getGammaMatrix()
-        for i in range(len(countXVec)):
-            Gamma_w[i][i] = Gamma_w[i][i]*countXVec[i]/batchSize
+        # for i in range(len(countXVec)):
+        #     Gamma_w[i][i] = Gamma_w[i][i]*countXVec[i]/batchSize
         
         GammaSqrt = Gamma_w
         for i in range(len(GammaSqrt)):
             GammaSqrt[i][i] = math.sqrt(Gamma_w[i][i])
-            
-        GammaSqrtPhi = numpy.mat(GammaSqrt) *numpy.mat(featuresMatrix)
-        if self.is_invertible(GammaSqrtPhi):
-            GammaSqrtPhiInv = linalg.inv(GammaSqrtPhi)
+
+        GammaSqrt = GammaSqrt * numpy.mat(featuresMatrix)
+
+        if self.is_invertible(GammaSqrt):
+            GammaSqrtPhiInv = linalg.inv(GammaSqrt)
         else:
-            GammaSqrtPhiInv = linalg.pinv(GammaSqrtPhi)
+            GammaSqrtPhiInv = linalg.pinv(GammaSqrt)
+
+        GammaTemp = numpy.mat(featuresMatrix).T * Gamma_w * numpy.mat(featuresMatrix)
+
+        #GammaSqrtPhi = numpy.mat(GammaSqrt) * numpy.mat(featuresMatrix)
+        if self.is_invertible(GammaTemp):
+            GammaTempPhiInv = linalg.inv(GammaTemp)
+        else:
+            GammaTempPhiInv = linalg.pinv(GammaTemp)
+
+        FirstVisitVector = numpy.reshape(FirstVisitVector, (len(FirstVisitVector), 1))
+
+        thetaTild = GammaTempPhiInv * numpy.mat(featuresMatrix).T * Gamma_w * numpy.mat(FirstVisitVector)
             
         PsiBetaX = self.SmootBound_LSW(myMDP, Gamma_w, countXVec, beta, myMDP.startStateDistribution())
         sigmmaX = (alpha*myMDP.getMaxReward())/(1-self.gamma_factor)
-        sigmmaX = sigmmaX*numpy.linalg.norm(GammaSqrtPhiInv)
-        sigmmaX = sigmmaX*math.pow(PsiBetaX, .5)
+        sigmmaX = sigmmaX*numpy.linalg.norm(GammaSqrtPhiInv,2)
+        sigmmaX = sigmmaX*math.pow(PsiBetaX, 0.5)
         cov_X = math.pow(sigmmaX,2)*numpy.identity(dim)
         mean = numpy.zeros(dim)
         ethaX = numpy.random.multivariate_normal(mean, cov_X)
@@ -245,32 +257,32 @@ class MCPE():
         I_count = numpy.identity(len(countVector))
         for i in range(len(countVector)):
             I_count[i,i]=countVector[i]
-        Gamma_X=Gamma_X*I_count
-        Gamma_X=Gamma_X/numTrajectories
-        invMatrix=phiT*numpy.mat(Gamma_X)
-        invMatrix=invMatrix*featuresMatrix
-        temp=regCoef/numTrajectories
-        temp=(0.5*temp)
-        Ident=temp*numpy.identity(dim)
-        invMatrix= (invMatrix)+numpy.mat(Ident)
+        Gamma_X = Gamma_X * I_count
+        Gamma_X = Gamma_X / numTrajectories
+        invMatrix = phiT*numpy.mat(Gamma_X)
+        invMatrix = invMatrix*featuresMatrix
+        temp = regCoef/numTrajectories
+        temp = (0.5*temp)
+        Ident = temp * numpy.identity(dim)
+        invMatrix = invMatrix + numpy.mat(Ident)
         if self.is_invertible(invMatrix):
-            invMatrix=linalg.inv(invMatrix)
+            invMatrix = linalg.inv(invMatrix)
         else:
-            invMatrix=linalg.pinv(invMatrix)
-        temp=numpy.mat(invMatrix)*numpy.mat(phiT)
-        temp=temp*Gamma_X
-        FirstVisitVector=numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1))
-        thetaTil_X = temp*FirstVisitVector
+            invMatrix = linalg.pinv(invMatrix)
+        temp = numpy.mat(invMatrix)*numpy.mat(phiT)
+        temp = temp*Gamma_X
+        FirstVisitVector = numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1))
+        thetaTil_X = temp * FirstVisitVector
         return thetaTil_X.reshape((dim,1))
         
-    def DPLSL (self, LSL_Vector, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta, regCoef, numTrajectories, rho, pi="uniform"):
-        regCoef=regCoef
-        dim=len(featuresMatrix.T)
-        Rho=numpy.reshape(rho,(len(rho),1))
-        thetaTil_X= LSL_Vector #self.LSL(FirstVisitVector, myMDP, featuresMatrix, regCoef, numTrajectories,countXVec)
-        normPhi=numpy.linalg.norm(featuresMatrix)
-        maxRho=numpy.linalg.norm(Rho,Inf)
-        alpha =(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
+    def DPLSL(self, LSL_Vector, countXVec, myMDP, featuresMatrix, gamma, epsilon, delta, regCoef, numTrajectories, rho, pi="uniform"):
+        regCoef = regCoef
+        dim = len(featuresMatrix.T)
+        Rho = numpy.reshape(rho , (len(rho),1))
+        thetaTil_X = LSL_Vector #self.LSL(FirstVisitVector, myMDP, featuresMatrix, regCoef, numTrajectories,countXVec)
+        normPhi = numpy.linalg.norm(featuresMatrix, 2)
+        maxRho = numpy.linalg.norm(Rho, Inf)
+        alpha = (5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
         beta = (epsilon/4)/(dim+numpy.math.log(2.0/delta))
 
         PsiBetaX = self.SmoothBound_LSL(featuresMatrix, myMDP, countXVec, myMDP.startStateDistribution(), regCoef, beta, numTrajectories)
@@ -281,10 +293,10 @@ class MCPE():
         
         #print(sigma_X)
         cov_X = math.pow(sigma_X,2)*numpy.identity(dim)
-        mean=numpy.zeros(dim)
-        ethaX=numpy.random.multivariate_normal(mean,cov_X)
-        ethaX=numpy.reshape(ethaX,(len(ethaX),1))
-        thetaTil_X_priv = thetaTil_X+ethaX
+        mean = numpy.zeros(dim)
+        ethaX = numpy.random.multivariate_normal(mean,cov_X)
+        ethaX = numpy.reshape(ethaX,(len(ethaX),1))
+        thetaTil_X_priv = thetaTil_X + ethaX
 
         return [thetaTil_X_priv.reshape((dim,1)), thetaTil_X, math.pow(sigma_X,2)]
     
@@ -475,7 +487,7 @@ class MCPE():
         for i in range(len(sub_samples)):
             print(f"sub-sample number {i} out of {len(sub_samples)} is passed to DP-LSW")
             FVMC = self.FVMCPE(myMDP, featuresMatrix, sub_samples[i])
-            DPLSWTemp = self.DPLSW(FVMC[0], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta,
+            DPLSWTemp = self.DPLSW(FVMC[2], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta,
                                    subSampleSize, "uniform", "uniform")
             first_visit[i] = ravel(FVMC[0])
             lsw[i] = ravel(numpy.mat(featuresMatrix)*numpy.mat(DPLSWTemp[0]).T) #this is LSW
