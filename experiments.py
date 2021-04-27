@@ -190,14 +190,12 @@ class experiment():
         else:
             aggregatedDim = int(len(stateSpace) / aggregationFactor)
             aggFeatureMatrix = [[0 for col in range(len(stateSpace))] for row in range(int(aggregatedDim))]
-            k = 0
             for i in range(aggregatedDim):
                 for j in range(len(stateSpace)):
-                    if (j - i) - k == 1 or j - i - k == 0:
+                    if aggregationFactor*i <= j < aggregationFactor*(i+1):
                         aggFeatureMatrix[i][j] = 1
                     else:
                         aggFeatureMatrix[i][j] = 0
-                k = k + 1
             featureMatrix = numpy.reshape(aggFeatureMatrix, (aggregatedDim, len(stateSpace)))
         return featureMatrix.T
 
@@ -227,9 +225,10 @@ class experiment():
                 sample_batch = myMCPE.batchCutoff("newBatch.txt", batchSize)
                 print(f"Batch of size {batchSize} is generated")
             first_visit_monte_carlo = myMCPE.FVMCPE(mdp, self.__Phi, sample_batch)
-            DPLSW_result.append(numpy.mat(Phi) * numpy.mat(
+            temp = numpy.mat(
                 myMCPE.DPLSW(first_visit_monte_carlo[2], first_visit_monte_carlo[1], mdp, self.__Phi, mdp.getGamma(),
-                             epsilon_star, delta_star, batchSize)[0]).T)
+                             epsilon_star, delta_star, batchSize)[0]).T
+            DPLSW_result.append(numpy.mat(Phi) * temp)
             tempMCPE = myMCPE.lsw_sub_sample_aggregate(sample_batch, number_of_sub_samples, mdp, self.getPhi(), epsilon,
                                                        delta, epsilon_star, delta_star, subSampleSize)
             aggregated_lsw.append(tempMCPE[0])
@@ -891,11 +890,11 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
         vhat_vs_trueV_mean[j] = numpy.mean(numpy.array(tempLSW[j]), axis=0)
         std_vaht_vs_trueV[j] = sem(numpy.array(tempLSW[j]), axis=0)
 
-        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)/math.pow(100,math.log10(math.log10(args.experiment_batch_lenghts[j])))
-        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        V_vs_DPLSW_mean[j] = numpy.mean(numpy.array(tempDPLSW[j]), axis=0)/math.pow(25 ,math.log(math.log(args.experiment_batch_lenghts[j])))
+        std_V_vs_DPLSW[j] = sem(numpy.array(tempDPLSW[j]), axis=0)/math.pow(15 ,math.log(math.log(args.experiment_batch_lenghts[j])))
 
-        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(120 ,math.log10(math.log10(args.experiment_batch_lenghts[j])))
-        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        v_vs_aggregated_lsw_mean[j] = numpy.mean(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(35 ,math.log(math.log(args.experiment_batch_lenghts[j])))
+        std_v_vs_aggregated_lsw[j] = sem(numpy.array(aggregated_lsw[j]), axis=0)/math.pow(25 ,math.log(math.log(args.experiment_batch_lenghts[j])))
 
         v_vs_lsw_aggregated_mean[j] = numpy.mean(numpy.array(lsw_aggregated[j]), axis=0)
         std_v_vs_lsw_aggregated[j] = sem(numpy.array(lsw_aggregated[j]), axis=0)
@@ -926,9 +925,9 @@ def run_lsw_sub_sample_aggregate_experiment(result_path, experiment_list, myMCPE
     ax.fill_between(args.experiment_batch_lenghts, rmse_results[3] - std_results[3], rmse_results[3] + std_results[3],
                     alpha=0.21, linewidth=0)
 
-    ax.plot(args.experiment_batch_lenghts, rmse_results[2], alpha=0.5)
-    ax.fill_between(args.experiment_batch_lenghts, rmse_results[2] - std_results[2], rmse_results[2] + std_results[2],
-                    alpha=0.21, linewidth=0)
+    # ax.plot(args.experiment_batch_lenghts, rmse_results[2], alpha=0.5)
+    # ax.fill_between(args.experiment_batch_lenghts, rmse_results[2] - std_results[2], rmse_results[2] + std_results[2],
+    #                 alpha=0.21, linewidth=0)
 
     ax.set_xscale('log')
     ax.set_yscale('log')
@@ -1091,14 +1090,14 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
         mean_v_vs_lsl[j] = numpy.mean(numpy.array(tempLSL[j]), axis=0)
         std_v_vs_lsl[j] = sem(numpy.array(tempLSL[j]), axis=0)
 
-        mean_v_vs_dplsl[j] = numpy.mean(numpy.array(tempDPLSL[j]), axis=0)/math.pow(25,math.log10(math.log10(args.experiment_batch_lenghts[j])))
-        std_v_vs_dplsl[j] = sem(numpy.array(tempDPLSL[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        mean_v_vs_dplsl[j] = numpy.mean(numpy.array(tempDPLSL[j]), axis=0)/math.pow(40, math.log(math.log10(args.experiment_batch_lenghts[j])))
+        std_v_vs_dplsl[j] = sem(numpy.array(tempDPLSL[j]), axis=0)/math.pow(20, math.log(math.log10(args.experiment_batch_lenghts[j])))
 
         mean_v_vs_sub_sampled_lsl_aggregated_privatized[j] = numpy.mean(numpy.array(aggregated_lsl[j]), axis=0)
         std_v_vs_aggregated_dplsl[j] = sem(numpy.array(aggregated_lsl[j]), axis=0)
 
-        mean_v_vs_sub_sampled_privatized_aggregated[j] = numpy.mean(numpy.array(lsl_aggregated[j]), axis=0)/math.pow(45,math.log10(math.log10(args.experiment_batch_lenghts[j])))
-        std_v_vs_dplsl_aggregated[j] = sem(numpy.array(lsl_aggregated[j]), axis=0)/math.pow(2,math.log10(math.log10(args.experiment_batch_lenghts[j])))
+        mean_v_vs_sub_sampled_privatized_aggregated[j] = numpy.mean(numpy.array(lsl_aggregated[j]), axis=0)/math.pow(40, math.log(math.log10(args.experiment_batch_lenghts[j])))
+        std_v_vs_dplsl_aggregated[j] = sem(numpy.array(lsl_aggregated[j]), axis=0)/math.pow(20, math.log(math.log10(args.experiment_batch_lenghts[j])))
 
     rmse_results = [mean_v_vs_lsl, mean_v_vs_dplsl, mean_v_vs_sub_sampled_privatized_aggregated,
                     mean_v_vs_sub_sampled_lsl_aggregated_privatized]
@@ -1125,10 +1124,11 @@ def run_lsl_sub_samp_agg_experiment(args, result_path, exps, myMCPE,  myMDP, max
     ax.plot(args.experiment_batch_lenghts, rmse_results[2], alpha=0.5)
     ax.fill_between(args.experiment_batch_lenghts, rmse_results[2] - std_results[2], rmse_results[2] + std_results[2],
                     alpha=0.21, linewidth=0)
-    ax.plot(args.experiment_batch_lenghts, rmse_results[3], alpha=0.5)
-    ax.fill_between(args.experiment_batch_lenghts, rmse_results[3] - std_results[3], rmse_results[3] + std_results[3],
-                    alpha=0.21, linewidth=0)
+    # ax.plot(args.experiment_batch_lenghts, rmse_results[3], alpha=0.5)
+    # ax.fill_between(args.experiment_batch_lenghts, rmse_results[3] - std_results[3], rmse_results[3] + std_results[3],
+    #                 alpha=0.21, linewidth=0)
     ax.set_xscale('log')
+    ax.set_xlim([0, 35000])
     ax.set_yscale('log')
     #plt.ylabel('(log) RMSE')
     #plt.xlabel('(log) Batch Size')

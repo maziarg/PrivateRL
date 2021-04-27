@@ -106,8 +106,8 @@ class MCPE():
 
     def FVMCPE(self,  myMDP, featuresMatrix, Batch):
         # TODO: Make it incremental
-        FV=[]
-        S=numpy.ravel(myMDP.getStateSpace())
+        FV = []
+        S = numpy.ravel(myMDP.getStateSpace())
         for s in S: 
             #iterates through trajectories and search for state s 
             sBatchCount=0
@@ -115,44 +115,44 @@ class MCPE():
             for i in range(len(Batch)):
                 trajectory=[]
                 # Zero is used here due to the fact that Batch[i] is an array itself
-                trajectory=Batch[i]  
+                trajectory = Batch[i]
                 for j in trajectory:
                     #j[0] is the state and j[1] is the collected immediate reward   
                     j=j.split('-') 
-                    if  j[0]!='\n' and s == int(j[0]):
+                    if j[0]!='\n' and s == int(j[0]):
                         tempFV = tempFV + self.FirstVisit(trajectory, s, myMDP.getGamma())
-                        sBatchCount=sBatchCount+1
+                        sBatchCount = sBatchCount+1
                         break
                     else:
                         continue
-            if sBatchCount==0:
-                FV.append([s,0,0])
+            if sBatchCount == 0:
+                FV.append([s, 0, 0])
             else:
-                tempFV/=sBatchCount           
-                FV.append([s,tempFV,sBatchCount]) 
+                tempFV /= sBatchCount
+                FV.append([s,tempFV, sBatchCount])
                 sBatchCount=0
-        firstVisitVecTemp=FV
-        phiT=featuresMatrix.T        
+        firstVisitVecTemp = FV
+        phiT = featuresMatrix.T
         FirstVisitVector=[]
         stateApearanceCount=[]
         for i in firstVisitVecTemp:
             FirstVisitVector.append([i[1]])
             stateApearanceCount.append(i[2])
-        FirstVisitVector=numpy.ravel(FirstVisitVector)
+        FirstVisitVector = numpy.ravel(FirstVisitVector)
         Gamma_w = myMDP.getGammaMatrix()
-        for i in range(len(stateApearanceCount)):
-            Gamma_w[i][i] = Gamma_w[i][i]*stateApearanceCount[i]/len(Batch)
+        # for i in range(len(stateApearanceCount)):
+        #     Gamma_w[i][i] = Gamma_w[i][i]*stateApearanceCount[i]/len(Batch)
     
-        invMatrix = (phiT*numpy.mat(Gamma_w))*featuresMatrix
+        invMatrix = phiT*numpy.mat(Gamma_w)*featuresMatrix
         
         if self.is_invertible(invMatrix):
-            invMatrix=linalg.inv(invMatrix)
-            temp1=(numpy.mat(invMatrix)*(phiT))*Gamma_w
-            temp2=(numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1)))
-            ParamVec=temp1*numpy.mat(temp2)
+            invMatrix = linalg.inv(invMatrix)
+            temp1 = (numpy.mat(invMatrix)*(phiT))*Gamma_w
+            temp2 = (numpy.reshape(FirstVisitVector, (len(FirstVisitVector),1)))
+            ParamVec = temp1*numpy.mat(temp2)
         else:
-            for i in range(len(Gamma_w)):
-                Gamma_w[i][i]=Gamma_w[i][i]**0.5
+            # for i in range(len(Gamma_w)):
+            #     Gamma_w[i][i]=Gamma_w[i][i]**0.5
             invMatrix=numpy.mat(Gamma_w)*numpy.mat(featuresMatrix)
             invMatrix=linalg.pinv(invMatrix)
             ParamVec = numpy.mat((numpy.mat(invMatrix)*numpy.mat(Gamma_w)))*numpy.\
@@ -228,7 +228,8 @@ class MCPE():
 
         FirstVisitVector = numpy.reshape(FirstVisitVector, (len(FirstVisitVector), 1))
 
-        thetaTild = GammaTempPhiInv * numpy.mat(featuresMatrix).T * Gamma_w * numpy.mat(FirstVisitVector)
+        thetaTild = GammaTempPhiInv * numpy.mat(featuresMatrix.T)
+        thetaTild = thetaTild * numpy.mat(Gamma_w) * numpy.mat(FirstVisitVector)
             
         PsiBetaX = self.SmootBound_LSW(myMDP, Gamma_w, countXVec, beta, myMDP.startStateDistribution())
         sigmmaX = (alpha*myMDP.getMaxReward())/(1-self.gamma_factor)
@@ -478,30 +479,35 @@ class MCPE():
     def lsw_sub_sample_aggregate(self, batch, numberOfsubSamples, myMDP, featuresMatrix, epsilon, delta, epsilon_star,
                                  delta_star, subSampleSize):
         dim = len(featuresMatrix.T)
+        num_states = len(featuresMatrix)
         #alpha=(5.0*numpy.sqrt(2*numpy.math.log(2.0/delta)))/epsilon
         #beta= (epsilon/4)*(dim+numpy.math.log(2.0/delta))
         
         sub_samples = self.subSampleGen(batch, numberOfsubSamples, subSampleSize)
         lsw = numpy.zeros((len(sub_samples), len(featuresMatrix)))
-        first_visit = numpy.zeros((len(sub_samples), dim))
+        first_visit = numpy.zeros((len(sub_samples), num_states))
+        count_vector = numpy.zeros((len(sub_samples), num_states))
         for i in range(len(sub_samples)):
             print(f"sub-sample number {i} out of {len(sub_samples)} is passed to DP-LSW")
             FVMC = self.FVMCPE(myMDP, featuresMatrix, sub_samples[i])
             DPLSWTemp = self.DPLSW(FVMC[2], FVMC[1], myMDP, featuresMatrix, myMDP.getGamma(), epsilon, delta,
                                    subSampleSize, "uniform", "uniform")
-            first_visit[i] = ravel(FVMC[0])
+            first_visit[i] = ravel(FVMC[2])
+            count_vector[i] = ravel(FVMC[1])
             mat_temp = numpy.mat(DPLSWTemp[0]).transpose()
             mat_phi_temp = numpy.mat(featuresMatrix)
             lsw[i] = np.ravel(mat_phi_temp * mat_temp )# this is LSW
         sum_lsw = numpy.zeros(len(featuresMatrix))
-        sum_first_visit = numpy.zeros(dim)
-        
+        sum_first_visit = numpy.zeros(num_states)
+        sum_count_vector = numpy.zeros(num_states)
+
         for j in range(len(lsw)):
             sum_lsw += lsw[j]
             sum_first_visit += first_visit[j]
+            sum_count_vector += count_vector[j]
 
         aggregated_private_first_visit = ravel(numpy.mat(featuresMatrix) *
-                                               numpy.mat(self.DPLSW(sum_first_visit/len(sub_samples), FVMC[1], myMDP,
+                                               numpy.mat(self.DPLSW(sum_first_visit/len(sub_samples), sum_count_vector/len(sub_samples), myMDP,
                                                                     featuresMatrix,
                                                                     myMDP.getGamma(), epsilon_star,
                                                                     delta_star, subSampleSize,
